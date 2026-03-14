@@ -1,0 +1,2453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>工程表メーカー</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --card-secondary: #f9f9fb;
+  --text: #1c1c1e;
+  --text-secondary: #8e8e93;
+  --text-tertiary: #aeaeb2;
+  --separator: #e5e5ea;
+  --blue: #007aff;
+  --red: #ff3b30;
+  --green: #34c759;
+  --orange: #ff9500;
+  --purple: #af52de;
+  --radius: 12px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  font-family: -apple-system, 'SF Pro Display', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.47;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ナビバー */
+.navbar {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(242,242,247,0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.12);
+  padding: 12px 20px; text-align: center;
+}
+.navbar h1 { font-size: 17px; font-weight: 600; }
+.navbar.scrolled { box-shadow: 0 0.5px 0 rgba(0,0,0,0.1); }
+
+/* セグメント */
+.segment-control {
+  display: flex; background: rgba(118,118,128,0.12);
+  border-radius: 9px; padding: 2px; margin: 16px 20px;
+}
+.segment-btn {
+  flex: 1; padding: 7px 12px; border: none; background: none;
+  border-radius: 7px; font-size: 20px; font-weight: 600;
+  color: var(--text); cursor: pointer; transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.segment-btn.active {
+  background: var(--card);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* コンテンツ */
+.content { padding: 0 20px 140px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* リストグループ */
+.list-group {
+  background: var(--card); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 24px;
+}
+.list-header {
+  font-size: 20px; font-weight: 400; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.02em;
+  padding: 8px 20px 6px; margin-top: 8px;
+}
+.list-item {
+  display: flex; align-items: center; padding: 12px 16px;
+  min-height: 44px; gap: 12px; position: relative;
+}
+.list-item:not(:last-child)::after {
+  content: ''; position: absolute; bottom: 0; left: 16px; right: 0;
+  height: 0.5px; background: var(--separator);
+}
+
+/* 入力 */
+.product-input {
+  width: 100%; border: none; font-size: 17px; background: transparent;
+  color: var(--text); outline: none; padding: 0; font-family: inherit;
+}
+.product-input::placeholder { color: var(--text-tertiary); }
+
+/* パーツカード */
+.part-card {
+  background: var(--card); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 16px;
+}
+.part-card-header {
+  display: flex; align-items: center; padding: 14px 16px; gap: 12px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.part-drag-handle {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary); font-size: 20px; flex-shrink: 0;
+  cursor: grab; -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+.part-card.dragging { opacity: 0.5; background: rgba(0,122,255,0.06); }
+.part-card.drag-over { border-top: 2px solid var(--blue); }
+.part-card.collapsed .part-card-header {
+  border-bottom: none;
+}
+.part-card:not(.collapsed) .part-card-header {
+  border-bottom: 0.5px solid var(--separator);
+}
+.part-card-body { display: block; }
+.part-card.collapsed .part-card-body { display: none; }
+.part-card-header .part-name {
+  flex: 1; font-size: 17px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 3em;
+}
+.part-step-count {
+  font-size: 13px; color: var(--text-tertiary); flex-shrink: 1;
+  white-space: nowrap;
+}
+.part-card-header .part-time {
+  font-size: 13px; color: var(--text-secondary); flex-shrink: 1;
+  white-space: nowrap;
+}
+.part-merge-row {
+  display: flex; align-items: center; padding: 6px 16px 10px; gap: 8px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.part-merge-label { font-size: 20px; color: var(--text-secondary); flex-shrink: 0; }
+.part-merge-select {
+  flex: 1; font-size: 21px; font-family: inherit; color: var(--blue);
+  border: 1px solid var(--separator); border-radius: 8px;
+  padding: 4px 8px; background: var(--card-secondary);
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23007aff' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.part-toggle-btn {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 1.5px solid var(--separator); background: var(--card-secondary);
+  color: var(--blue); font-size: 22px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  line-height: 1;
+}
+.part-toggle-btn:active { background: rgba(0,122,255,0.08); }
+.part-delete-btn, .branch-delete-btn {
+  color: var(--red); font-size: 15px; font-weight: 500;
+  border: none; background: none; cursor: pointer; padding: 4px 8px;
+  flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+}
+
+/* 枝（サブパーツ）セクション */
+.branch-section {
+  border-left: 3px solid var(--orange);
+  margin: 0 0 0 12px;
+  padding: 0;
+}
+.branch-header {
+  display: flex; align-items: center; padding: 10px 16px 6px 12px; gap: 8px;
+}
+.branch-name {
+  flex: 1; font-size: 15px; font-weight: 600; color: var(--orange);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.branch-time {
+  font-size: 20px; color: var(--text-secondary); flex-shrink: 0;
+}
+
+/* 合流後ラベル */
+.trunk-label {
+  padding: 10px 16px 6px;
+  font-size: 20px; font-weight: 600; color: var(--purple);
+  display: flex; align-items: center; gap: 6px;
+}
+.trunk-label::before {
+  content: ''; display: block; width: 16px; height: 2px;
+  background: var(--purple); border-radius: 1px;
+}
+
+/* 工程行 */
+.step-item {
+  display: flex; align-items: center; padding: 10px 16px;
+  min-height: 44px; gap: 10px; position: relative;
+}
+.step-item:not(:last-child)::after {
+  content: ''; position: absolute; bottom: 0; left: 52px; right: 0;
+  height: 0.5px; background: var(--separator);
+}
+.step-item.in-branch { padding-left: 24px; }
+.step-item.in-branch:not(:last-child)::after { left: 60px; }
+
+.step-badge {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--text);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.step-badge.main { background: var(--green); }
+.step-badge.branch-badge { background: var(--orange); }
+
+.step-name-label {
+  flex: 1; font-size: 16px;
+  word-break: break-all;
+}
+.step-time-group {
+  display: flex; align-items: center; gap: 2px; flex-shrink: 0;
+}
+.step-time-input {
+  width: 36px; border: 1px solid var(--separator); border-radius: 8px;
+  padding: 6px 4px; font-size: 16px; text-align: center;
+  background: var(--card-secondary); color: var(--text);
+  font-family: inherit; -webkit-appearance: none;
+}
+.step-time-input:focus {
+  border-color: var(--blue); outline: none;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+}
+.step-time-unit { font-size: 18px; color: var(--text-secondary); }
+
+/* 工程表一覧 */
+.chart-list {
+  display: flex; gap: 8px; overflow-x: auto; padding: 0 20px 8px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.chart-list::-webkit-scrollbar { display: none; }
+.chart-chip {
+  flex-shrink: 0; padding: 8px 16px; border-radius: 20px;
+  font-size: 21px; font-weight: 500; border: 1.5px solid var(--separator);
+  background: var(--card); color: var(--text); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.chart-chip.active {
+  background: var(--blue); color: #fff; border-color: var(--blue);
+}
+.chart-chip.add-chart {
+  border-style: dashed; color: var(--blue);
+}
+.step-delete {
+  color: var(--red); font-size: 20px; border: none; background: none;
+  cursor: pointer; padding: 4px; flex-shrink: 0; line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.step-move {
+  display: flex; flex-direction: column; gap: 0; flex-shrink: 0;
+}
+.step-move-btn {
+  border: none; background: none; cursor: pointer; padding: 2px 4px;
+  font-size: 14px; color: var(--text-secondary); line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.step-move-btn:active { color: var(--blue); }
+.step-move-btn.disabled { opacity: 0.2; pointer-events: none; }
+
+/* ドラッグ並び替え */
+.step-drag-handle {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary); font-size: 16px; flex-shrink: 0;
+  cursor: grab; -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+.step-item.dragging {
+  opacity: 0.5; background: rgba(0,122,255,0.06);
+}
+.step-item.drag-over {
+  border-top: 2px solid var(--blue);
+}
+
+/* 追加ボタン */
+.add-row {
+  display: flex; align-items: center; padding: 12px 16px; gap: 8px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.add-row:active { background: rgba(0,0,0,0.04); }
+.add-row.in-branch { padding-left: 24px; }
+.add-icon {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--green);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 300;
+}
+.add-icon.orange { background: var(--orange); }
+.add-icon.purple { background: var(--purple); }
+.add-label { font-size: 16px; color: var(--green); font-weight: 500; }
+.add-label.orange { color: var(--orange); }
+.add-label.purple { color: var(--purple); }
+
+.add-btn-large {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 14px; background: var(--card); border-radius: var(--radius);
+  border: none; font-size: 16px; font-weight: 500; color: var(--blue);
+  cursor: pointer; width: 100%; font-family: inherit; margin-bottom: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+.add-btn-large:active { background: rgba(255,255,255,0.6); }
+
+/* 合計バー */
+.total-bar {
+  background: var(--card); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.total-label { font-size: 15px; color: var(--text-secondary); }
+.total-value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* フッター */
+.footer-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  background: rgba(242,242,247,0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 0.5px solid rgba(0,0,0,0.12);
+  padding: 12px 20px calc(12px + var(--safe-bottom));
+  display: flex; gap: 10px;
+}
+.footer-btn {
+  flex: 1; padding: 14px; border: none; border-radius: var(--radius);
+  font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit;
+  -webkit-tap-highlight-color: transparent; transition: transform 0.1s;
+}
+.footer-btn:active { transform: scale(0.97); }
+.footer-btn-primary { background: var(--blue); color: #fff; }
+.footer-btn-secondary { background: rgba(0,122,255,0.12); color: var(--blue); }
+.footer-btn-tertiary { background: rgba(52,199,89,0.12); color: var(--green); }
+
+/* 印刷用スタイル */
+@media print {
+  * { overflow: visible !important; }
+  body { background: white !important; margin: 0 !important; padding: 0 !important; }
+  .navbar, .segment-control, .footer-bar,
+  .sheet-overlay, .bottom-sheet, .chart-chips-wrap,
+  .zoom-bar, .chart-placeholder, #tab-edit,
+  .chart-chips-wrap, .list-header, .add-chart-btn-wrap { display: none !important; }
+  .content { padding: 0 !important; margin: 0 !important; }
+  .tab-panel { display: none !important; }
+  .tab-panel#tab-preview,
+  #tab-preview {
+    display: block !important; position: static !important;
+    page-break-inside: avoid !important;
+  }
+  .chart-viewport {
+    display: block !important; position: static !important;
+    width: 100% !important; height: auto !important;
+    overflow: visible !important; background: white !important;
+  }
+  #chart-inner {
+    transform: none !important;
+    display: flex; justify-content: center; align-items: flex-start;
+  }
+  #chart-inner svg {
+    max-width: 190mm; max-height: 277mm; width: auto; height: auto;
+  }
+  @page { size: A4; margin: 10mm; }
+}
+
+/* プレビュー */
+.chart-viewport {
+  background: var(--card); border-radius: var(--radius); overflow: hidden;
+  border: 0.5px solid var(--separator); position: relative;
+  touch-action: none; min-height: 300px; margin-bottom: 16px;
+}
+.chart-inner { transform-origin: 0 0; will-change: transform; }
+.chart-placeholder {
+  text-align: center; padding: 60px 20px; color: var(--text-tertiary);
+  font-size: 15px; line-height: 1.6;
+}
+.zoom-bar {
+  display: flex; gap: 8px; margin-bottom: 12px;
+  align-items: center; justify-content: flex-end;
+}
+.zoom-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: var(--card); color: var(--text); font-size: 20px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); -webkit-tap-highlight-color: transparent;
+}
+.zoom-btn:active { background: var(--bg); }
+.zoom-label { font-size: 20px; color: var(--text-secondary); min-width: 40px; text-align: center; }
+
+/* ボトムシート */
+.sheet-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  z-index: 100; animation: fadeIn 0.2s ease;
+}
+.sheet-overlay.open { display: block; }
+.sheet {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 101;
+  background: var(--bg); border-radius: 14px 14px 0 0;
+  max-height: 70vh; display: none; flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: bottom 0.2s ease;
+}
+.sheet.open { display: flex; }
+.sheet-handle {
+  width: 36px; height: 5px; border-radius: 3px;
+  background: rgba(118,118,128,0.3); margin: 8px auto 4px; flex-shrink: 0;
+}
+.sheet-header {
+  display: flex; align-items: center; padding: 8px 16px 12px; flex-shrink: 0;
+}
+.sheet-title { flex: 1; font-size: 17px; font-weight: 600; text-align: center; }
+.sheet-close {
+  font-size: 15px; color: #fff; font-weight: 600;
+  border: none; background: var(--blue); cursor: pointer;
+  padding: 8px 20px; border-radius: 20px;
+  -webkit-tap-highlight-color: transparent;
+}
+.sheet-search {
+  margin: 0 16px 8px; padding: 8px 12px; border: none; border-radius: 10px;
+  background: rgba(118,118,128,0.12); font-size: 17px; color: var(--text);
+  font-family: inherit; outline: none; width: calc(100% - 32px);
+}
+.sheet-search::placeholder { color: var(--text-tertiary); }
+.sheet-list {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(20px + var(--safe-bottom));
+}
+.sheet-item {
+  display: flex; align-items: center; padding: 14px 20px; min-height: 44px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  position: relative; font-size: 17px;
+}
+.sheet-item:active { background: rgba(0,0,0,0.04); }
+.sheet-item:not(:last-child)::after {
+  content: ''; position: absolute; bottom: 0; left: 20px; right: 0;
+  height: 0.5px; background: var(--separator);
+}
+.sheet-item-add { color: var(--blue); font-weight: 500; }
+.sheet-item.just-added {
+  animation: flashGreen 0.4s ease;
+}
+@keyframes flashGreen {
+  0% { background: rgba(52,199,89,0.25); }
+  100% { background: transparent; }
+}
+.sheet-added-count {
+  font-size: 17px; color: var(--green); font-weight: 600;
+  padding: 0; flex-shrink: 0;
+  background: none; border-radius: 0;
+  min-height: 0; line-height: 1.2;
+  transition: opacity 0.5s ease;
+  opacity: 1;
+}
+.sheet-added-count:empty { display: none; }
+.sheet-added-count.fade-out { opacity: 0.3; }
+.sheet-section-header {
+  font-size: 20px; font-weight: 400; color: var(--text-secondary);
+  text-transform: uppercase; padding: 20px 20px 6px;
+}
+
+/* テンプレート */
+.template-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; margin-bottom: 16px;
+}
+.template-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 16px 8px; text-align: center; cursor: pointer;
+  border: 2px solid transparent; transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.template-card:active { transform: scale(0.97); }
+.template-card.selected { border-color: var(--blue); background: rgba(0,122,255,0.06); }
+.template-card.preset-card { border-color: var(--orange); }
+.template-card.preset-card.selected { border-color: var(--orange); background: rgba(255,149,0,0.08); }
+.template-icon { font-size: 28px; margin-bottom: 4px; }
+.template-name { font-size: 20px; font-weight: 600; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="navbar" id="navbar"><h1>工程表メーカー</h1></div>
+
+
+<div class="content">
+<div class="tab-panel active" id="tab-edit">
+  <div class="list-header">工程表</div>
+  <div class="chart-list" id="chart-list"></div>
+
+  <div class="list-header">製品</div>
+  <div class="list-group">
+    <div class="list-item">
+      <input type="text" class="product-input" id="product-name" placeholder="製品名を入力（例：ワンピース）" oninput="saveData()">
+    </div>
+  </div>
+
+  <div class="list-header">テンプレートから始める</div>
+  <div class="template-grid" id="template-grid"></div>
+
+  <div class="total-bar">
+    <span class="total-label">合計時間</span>
+    <span class="total-value" id="total-time">0秒</span>
+  </div>
+
+  <div class="list-header">メインライン（共通工程）</div>
+  <div class="part-card" id="mainline-card">
+    <div class="part-card-header">
+      <span class="part-name">メインライン</span>
+      <span class="part-step-count" id="mainline-count">0工程</span>
+      <button class="part-toggle-btn" id="mainline-toggle" onclick="toggleMainline()">▼</button>
+    </div>
+    <div class="part-card-body" id="mainline-body">
+      <div id="mainline-steps"></div>
+      <div class="add-row" onclick="openSheet('mainStep')">
+        <span class="add-icon">+</span>
+        <span class="add-label">工程を追加</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="list-header">パーツ</div>
+  <div id="parts-area"></div>
+  <button class="add-btn-large" onclick="openSheet('part')">＋ パーツを追加</button>
+
+  <div class="list-header">データ管理</div>
+  <button class="add-btn-large" onclick="deleteCurrentChart()" style="color: var(--red);">この工程表を削除</button>
+</div>
+
+<div class="tab-panel" id="tab-preview">
+  <div class="zoom-bar">
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+    <span class="zoom-label" id="zoom-level">100%</span>
+    <button class="zoom-btn" onclick="zoomIn()">＋</button>
+    <button class="zoom-btn" onclick="zoomReset()" style="border-radius:8px;width:auto;padding:0 10px;font-size:13px;">リセット</button>
+  </div>
+  <div class="chart-viewport" id="chart-viewport">
+    <div class="chart-inner" id="chart-inner">
+      <div class="chart-placeholder">入力タブでデータを入れると<br>ここに工程表が表示されます</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="footer-bar" id="footer-bar">
+  <button class="footer-btn footer-btn-primary" id="footer-main-btn" onclick="toggleView()">プレビュー</button>
+  <button class="footer-btn footer-btn-secondary" id="footer-save-btn" onclick="downloadA4(false)">A4 PDF</button>
+  <button class="footer-btn footer-btn-secondary" id="footer-save-1p-btn" onclick="downloadA4(true)">1枚PDF</button>
+</div>
+
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-added-count" id="sheet-added-count"></span>
+    <span class="sheet-title" id="sheet-title">選択</span>
+    <button class="sheet-close" onclick="closeSheet()">完了</button>
+  </div>
+  <input type="text" class="sheet-search" id="sheet-search" placeholder="検索 / 新しく追加" oninput="filterSheet()">
+  <div class="sheet-list" id="sheet-list"></div>
+</div>
+
+<script>
+// ===== データモデル =====
+// part = { id, name, mergeAt: number, branches: [{ id, name, steps: [{name, seconds}] }], steps: [{name, seconds}] }
+// mergeAt = メインラインの何番目の工程に合流するか（0始まり）。デフォルト0（先頭）
+// branches = サブパーツ（枝）。合流後のstepsがトランク
+// branchesが空なら、stepsのみの単純パーツ
+let parts = [];
+let mainSteps = [];
+let sheetMode = null;
+let sheetContext = null; // { partId, branchId } or partId
+let sheetAddedCount = 0;
+let expandedPartId = null; // 展開中のパーツID（nullなら全部閉じ）
+let sheetSavedScrollY = 0; // シート表示前のスクロール位置
+
+// ===== 選択肢データ =====
+const DEFAULT_PARTS = [
+  '衿', '内衿', '外衿', '内台衿', '外台衿', '台衿',
+  '袖', '外袖', '内袖', '袖ウラ', '袖口見返し',
+  '身ごろ', '表身ごろ', 'ウラ地身ごろ', '表前パーツ', '表後パーツ',
+  'スカート', '見返し', 'フラップ', '表フラップ', 'ウラフラップ',
+  'ウラ地', 'ポケット', 'ベルト', 'ヨーク', 'カフス'
+];
+
+const DEFAULT_OPERATIONS = [
+  'アイロン', '仕上げアイロン', '割りアイロン', 'つぶしアイロン', '折りアイロン',
+  'パーツアイロン', 'ポケットアイロン', '外回りアイロン', '袖ぐりアイロン',
+  '縫い', '地縫い', '巻き縫い', '合わせ縫い', '衿外回り縫い', '外回り',
+  'ロック', 'ロック始末',
+  'ステッチ', 'コバステッチ', 'ウラコバステッチ', 'ボタン位置ステッチ',
+  'はぎ', 'ウエストはぎ', 'パーツはぎ', '袖下はぎ', '袖口はぎ',
+  'ヘム折り', 'ヘム縫い',
+  'テープ貼り', '肩テープ貼り', 'テープ貼り・ケットゲージ',
+  'タック取り', 'ダーツ縫い',
+  'しつけ', '裾しつけ', '裾縫い',
+  '脇入れ', '肩入れ', '肩アイロン',
+  '衿付け', '袖付け', '見返し付け', '外台衿付け', 'ウラ付け', 'パット付け',
+  'ポケット付け',
+  'どんでん', '前端どんでん', '外回りどんでん', '袖口どんでん',
+  'ボタン付け', 'ボタンホール',
+  '止め', '衿ぐり止め', '袖ぐり止め',
+  '返し', '表返し', 'まとめ',
+  '中とじ', '衿中とじ', 'ぐし取り', 'ウラ始末',
+  '検品'
+];
+
+// テンプレート（branches対応）
+const TEMPLATES = [
+  {
+    name: 'ワンピース', icon: '👗',
+    parts: [
+      { name: '衿', branches: [
+        { name: '内衿', steps: [] },
+        { name: '外衿', steps: [] },
+      ], steps: ['衿外回り縫い', '衿外回りアイロン', '台衿付け'] },
+      { name: '袖', branches: [], steps: ['ヘム折り', 'はぎ', '仕上げアイロン'] },
+      { name: '表身ごろ', branches: [], steps: ['肩テープ貼り', '肩入れ', '脇入れ'] },
+      { name: 'スカート', branches: [], steps: ['脇入れ', 'タック取り'] },
+      { name: '見返し', branches: [], steps: ['縫い', 'アイロン'] },
+    ],
+    mainSteps: ['割りアイロン', 'ウエストはぎ', 'ウエストアイロン', '前端どんでん', 'ウラコバステッチ', '衿付け', '袖付け', '仕上げアイロン', '裾しつけ']
+  },
+  {
+    name: 'ジャケット', icon: '🧥',
+    parts: [
+      { name: '衿', branches: [
+        { name: '内衿', steps: [] },
+        { name: '外衿', steps: [] },
+        { name: '内台衿', steps: [] },
+        { name: '外台衿', steps: [] },
+      ], steps: ['衿外回り縫い', '外台衿付け', 'アイロン'] },
+      { name: '表前パーツ', branches: [], steps: ['パーツはぎ', 'パーツアイロン', 'テープ貼り・ケットゲージ'] },
+      { name: '表後パーツ', branches: [], steps: ['パーツはぎ', 'パーツアイロン', 'テープ貼り'] },
+      { name: 'フラップ', branches: [
+        { name: '表フラップ', steps: [] },
+        { name: 'ウラフラップ', steps: [] },
+      ], steps: ['外回り', 'アイロン'] },
+      { name: '袖', branches: [
+        { name: '外袖', steps: ['袖下はぎ', 'アイロン'] },
+        { name: '内袖', steps: [] },
+        { name: '袖口見返し', steps: [] },
+        { name: '袖ウラ', steps: ['はぎ', 'アイロン'] },
+      ], steps: ['袖口どんでん', 'アイロン', '袖口はぎ', 'アイロン', 'ウラ付け', '中とじ', 'ぐし取り', '仕上げアイロン'] },
+      { name: 'ウラ地＋見返し', branches: [
+        { name: 'ウラ地', steps: [] },
+        { name: '見返し', steps: [] },
+      ], steps: ['パーツはぎ', '見返し付け', 'パーツアイロン'] },
+    ],
+    mainSteps: ['ポケット付け', 'ポケットアイロン', '肩入れ', '肩アイロン', '外回りどんでん', '衿付け', '外回りアイロン', '衿中とじ', '袖付け', '袖ぐりアイロン', 'ウラ始末', 'パット付け', 'ボタンホール', '裾縫い', '仕上げアイロン']
+  },
+  {
+    name: 'シャツ', icon: '👔',
+    parts: [
+      { name: '衿', branches: [
+        { name: '内衿', steps: [] },
+        { name: '外衿', steps: [] },
+      ], steps: ['地縫い', 'アイロン', '台衿付け'] },
+      { name: '袖', branches: [], steps: ['ヘム折り', 'カフス付け'] },
+      { name: '表前パーツ', branches: [], steps: ['肩テープ貼り', '肩入れ', '脇入れ'] },
+      { name: 'ポケット', branches: [], steps: ['アイロン'] },
+    ],
+    mainSteps: ['ポケット付け', '衿付け', '袖付け', 'ロック', 'ステッチ', '仕上げアイロン', 'ボタンホール', 'ボタン付け', '検品']
+  },
+  {
+    name: 'スカート', icon: '🩳',
+    parts: [
+      { name: '表前パーツ', branches: [], steps: ['ダーツ縫い', '脇入れ'] },
+      { name: '表後パーツ', branches: [], steps: ['ダーツ縫い', '脇入れ'] },
+      { name: 'ベルト', branches: [], steps: ['アイロン'] },
+    ],
+    mainSteps: ['はぎ', 'ロック', 'アイロン', 'ステッチ', '裾しつけ', '仕上げアイロン', '検品']
+  },
+  {
+    name: 'ズボン', icon: '👖',
+    parts: [
+      { name: '表前パーツ', branches: [], steps: ['ダーツ縫い', '脇入れ'] },
+      { name: '表後パーツ', branches: [], steps: ['ダーツ縫い', '脇入れ'] },
+      { name: 'ポケット', branches: [], steps: ['縫い', 'アイロン'] },
+      { name: 'ベルト', branches: [], steps: ['アイロン'] },
+    ],
+    mainSteps: ['はぎ', 'ロック', 'アイロン', 'ステッチ', '裾しつけ', '仕上げアイロン', '検品']
+  },
+  {
+    name: '白紙から', icon: '📄',
+    parts: [],
+    mainSteps: []
+  }
+];
+
+// パーツ→おすすめ工程のマッピング
+const PART_OPS_MAP = {
+  'ポケット': ['芯貼り', 'アイロン', 'ロック', 'ロック始末', 'ステッチ', 'コバステッチ', 'ポケット付け', 'ポケットアイロン', '縫い', '地縫い'],
+  '衿': ['芯貼り', 'アイロン', '地縫い', '衿外回り縫い', '外回り', '表返し', 'コバステッチ', 'ウラコバステッチ', '衿付け', '衿中とじ', '仕上げアイロン'],
+  '内衿': ['芯貼り', '地縫い', 'アイロン'],
+  '外衿': ['芯貼り', '地縫い', 'アイロン'],
+  '内台衿': ['芯貼り', 'アイロン'],
+  '外台衿': ['芯貼り', 'アイロン', '外台衿付け'],
+  '台衿': ['芯貼り', 'アイロン', '地縫い', 'コバステッチ'],
+  '袖': ['地縫い', 'ヘム折り', 'ヘム縫い', 'はぎ', 'ロック', 'アイロン', '袖付け', '仕上げアイロン', '袖口どんでん', '袖口はぎ'],
+  '外袖': ['はぎ', 'アイロン', '袖下はぎ'],
+  '内袖': ['地縫い', 'アイロン'],
+  '袖ウラ': ['はぎ', 'アイロン'],
+  '袖口見返し': ['芯貼り', 'アイロン'],
+  '身ごろ': ['肩テープ貼り', '肩入れ', '脇入れ', 'ダーツ縫い', 'ロック', 'アイロン', '割りアイロン'],
+  '表身ごろ': ['肩テープ貼り', '肩入れ', '脇入れ', 'ダーツ縫い', 'ロック', 'アイロン'],
+  'ウラ地身ごろ': ['肩入れ', '脇入れ', 'アイロン'],
+  '表前パーツ': ['パーツはぎ', 'パーツアイロン', 'テープ貼り', 'テープ貼り・ケットゲージ', 'ダーツ縫い', '脇入れ'],
+  '表後パーツ': ['パーツはぎ', 'パーツアイロン', 'テープ貼り', 'ダーツ縫い', '脇入れ'],
+  'スカート': ['脇入れ', 'タック取り', 'ロック', 'アイロン', '割りアイロン'],
+  '見返し': ['芯貼り', '縫い', 'アイロン', '見返し付け', 'パーツはぎ', 'パーツアイロン'],
+  'ウラ地': ['パーツはぎ', 'アイロン', '縫い'],
+  'フラップ': ['外回り', 'アイロン'],
+  '表フラップ': ['芯貼り', 'アイロン'],
+  'ウラフラップ': ['アイロン'],
+  'ベルト': ['芯貼り', 'アイロン', '縫い', 'ステッチ'],
+  'ヨーク': ['縫い', 'アイロン', 'ステッチ'],
+  'カフス': ['芯貼り', '地縫い', 'アイロン', 'ステッチ'],
+  '前立': ['芯貼り', 'アイロン成形', 'ステッチ', '地縫い'],
+};
+
+let customParts = JSON.parse(localStorage.getItem('customParts') || '[]');
+let customOps = JSON.parse(localStorage.getItem('customOps') || '[]');
+function allParts() { return [...new Set([...DEFAULT_PARTS, ...customParts])]; }
+function allOps() { return [...new Set([...DEFAULT_OPERATIONS, ...customOps])]; }
+
+// ===== ユーティリティ =====
+function uid() { return 'id' + Date.now() + Math.random().toString(36).slice(2, 5); }
+
+function formatTime(sec) {
+  if (sec === 0) return '0秒';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  let str = '';
+  if (h > 0) str += h + '時間';
+  if (m > 0) str += m + '分';
+  if (s > 0) str += s + '秒';
+  return str;
+}
+
+function getMin(sec) { return Math.floor((sec || 0) / 60); }
+function getSec(sec) { return (sec || 0) % 60; }
+
+// プレビュー用: 30 → '30"', 65 → "1'05"
+function fmtMS(sec) {
+  if (!sec) return '';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m === 0) return s + '"';
+  return m + "'" + String(s).padStart(2, '0');
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function calcPartSeconds(part) {
+  let sec = 0;
+  part.branches.forEach(b => b.steps.forEach(s => sec += s.seconds));
+  part.steps.forEach(s => sec += s.seconds);
+  return sec;
+}
+
+// ===== 複数工程表管理 =====
+let charts = []; // [{id, name, parts, mainSteps}]
+let currentChartId = null;
+
+function saveCurrentChart() {
+  if (!currentChartId) return;
+  const chart = charts.find(c => c.id === currentChartId);
+  if (!chart) return;
+  chart.name = document.getElementById('product-name').value || '無題';
+  chart.parts = JSON.parse(JSON.stringify(parts));
+  chart.mainSteps = JSON.parse(JSON.stringify(mainSteps));
+  saveAllCharts();
+}
+
+function saveAllCharts() {
+  localStorage.setItem('sewingCharts', JSON.stringify(charts));
+  localStorage.setItem('sewingCurrentChartId', currentChartId);
+}
+
+function loadAllCharts() {
+  // 旧データからの移行
+  const oldData = localStorage.getItem('sewingChartData');
+  const newData = localStorage.getItem('sewingCharts');
+
+  if (newData) {
+    charts = JSON.parse(newData);
+    currentChartId = localStorage.getItem('sewingCurrentChartId');
+    if (!charts.find(c => c.id === currentChartId) && charts.length > 0) {
+      currentChartId = charts[0].id;
+    }
+  } else if (oldData) {
+    // 旧形式→新形式に移行
+    try {
+      const data = JSON.parse(oldData);
+      const id = uid();
+      charts = [{ id, name: data.productName || '無題', parts: data.parts || [], mainSteps: data.mainSteps || [] }];
+      currentChartId = id;
+      localStorage.removeItem('sewingChartData');
+      saveAllCharts();
+    } catch(e) {
+      createNewChart();
+    }
+  } else {
+    createNewChart();
+  }
+  switchChart(currentChartId);
+}
+
+function switchChart(id) {
+  if (currentChartId && currentChartId !== id) {
+    saveCurrentChart();
+  }
+  currentChartId = id;
+  const chart = charts.find(c => c.id === id);
+  if (!chart) return;
+  document.getElementById('product-name').value = chart.name === '無題' ? '' : chart.name;
+  parts = JSON.parse(JSON.stringify(chart.parts));
+  mainSteps = JSON.parse(JSON.stringify(chart.mainSteps));
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  renderAll();
+  renderChartList();
+  saveAllCharts();
+}
+
+function createNewChart() {
+  saveCurrentChart();
+  const id = uid();
+  charts.unshift({ id, name: '無題', parts: [], mainSteps: [] });
+  currentChartId = id;
+  document.getElementById('product-name').value = '';
+  parts = [];
+  mainSteps = [];
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  renderAll();
+  renderChartList();
+  saveAllCharts();
+}
+
+function deleteCurrentChart() {
+  if (charts.length <= 1) {
+    if (!confirm('最後の工程表です。データをクリアしますか？')) return;
+    parts = [];
+    mainSteps = [];
+    document.getElementById('product-name').value = '';
+    const chart = charts.find(c => c.id === currentChartId);
+    if (chart) { chart.name = '無題'; chart.parts = []; chart.mainSteps = []; }
+    document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+    renderAll();
+    renderChartList();
+    saveAllCharts();
+    return;
+  }
+  const chart = charts.find(c => c.id === currentChartId);
+  const name = chart ? chart.name : '';
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+  charts = charts.filter(c => c.id !== currentChartId);
+  switchChart(charts[0].id);
+}
+
+function renderChartList() {
+  const el = document.getElementById('chart-list');
+  let html = '';
+  html += `<div class="chart-chip add-chart" onclick="createNewChart()">＋ 新規</div>`;
+  charts.forEach(c => {
+    const active = c.id === currentChartId ? ' active' : '';
+    const name = c.name || '無題';
+    html += `<div class="chart-chip${active}" onclick="switchChart('${c.id}')">${esc(name)}</div>`;
+  });
+  el.innerHTML = html;
+}
+
+function saveData() {
+  saveCurrentChart();
+  renderChartList();
+}
+
+// ===== タブ =====
+let currentTab = 'edit';
+
+function switchTab(name) {
+  currentTab = name;
+  document.getElementById('tab-edit').classList.toggle('active', name === 'edit');
+  document.getElementById('tab-preview').classList.toggle('active', name === 'preview');
+  const btn = document.getElementById('footer-main-btn');
+  if (name === 'preview') {
+    renderChart();
+    // プレビューの先頭が見える位置にスクロール
+    setTimeout(() => {
+      document.getElementById('tab-preview').scrollIntoView({ behavior: 'auto', block: 'start' });
+      window.scrollTo(0, 0);
+      // 画面幅にフィット
+      const svgEl = document.querySelector('#chart-inner svg');
+      if (svgEl) {
+        const vw = document.getElementById('chart-viewport').clientWidth;
+        const svgW = svgEl.getAttribute('width');
+        if (svgW && vw) {
+          scale = Math.min(vw / parseFloat(svgW), 1);
+          panX = 0; panY = 0;
+          updateTransform();
+        }
+      }
+    }, 50);
+    btn.textContent = '入力に戻る';
+    btn.classList.remove('footer-btn-primary');
+    btn.classList.add('footer-btn-secondary');
+    document.getElementById('footer-save-btn').classList.remove('footer-btn-secondary');
+    document.getElementById('footer-save-btn').classList.add('footer-btn-primary');
+  } else {
+    btn.textContent = 'プレビュー';
+    btn.classList.remove('footer-btn-secondary');
+    btn.classList.add('footer-btn-primary');
+    document.getElementById('footer-save-btn').classList.remove('footer-btn-primary');
+    document.getElementById('footer-save-btn').classList.add('footer-btn-secondary');
+  }
+}
+
+function toggleView() {
+  switchTab(currentTab === 'edit' ? 'preview' : 'edit');
+}
+
+// ===== テンプレート =====
+function renderTemplates() {
+  const g = document.getElementById('template-grid');
+  g.innerHTML = '';
+  TEMPLATES.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 'template-card';
+    d.innerHTML = `<div class="template-icon">${t.icon}</div><div class="template-name">${t.name}</div>`;
+    d.onclick = () => loadTemplate(i);
+    g.appendChild(d);
+  });
+  // プリセット（秒数付きデータ）
+  Object.keys(PRESETS).forEach(key => {
+    const p = PRESETS[key];
+    const d = document.createElement('div');
+    d.className = 'template-card preset-card';
+    d.innerHTML = `<div class="template-icon">📋</div><div class="template-name">${p.name}<br><span style="font-size:11px;color:#8e8e93">秒数入り</span></div>`;
+    d.onclick = () => { selectTemplateCard(d); importChartData(p); };
+    g.appendChild(d);
+  });
+}
+
+function selectTemplateCard(el) {
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+}
+
+function loadTemplate(idx) {
+  const t = TEMPLATES[idx];
+  if (parts.length > 0 || mainSteps.length > 0) {
+    if (!confirm('現在のデータを置き換えますか？')) return;
+  }
+  selectTemplateCard(document.querySelectorAll('.template-card')[idx]);
+  const nameInput = document.getElementById('product-name');
+  if (!nameInput.value.trim()) {
+    nameInput.value = t.name !== '白紙から' ? t.name : '';
+  }
+
+  parts = t.parts.map(p => ({
+    id: uid(),
+    name: p.name,
+    mergeAt: p.mergeAt || 0,
+    side: p.side || 'right',
+    branches: (p.branches || []).map(b => ({
+      id: uid(),
+      name: b.name,
+      steps: (b.steps || []).map(s => ({ name: s, seconds: 0 }))
+    })),
+    steps: p.steps.map(s => ({ name: s, seconds: 0 }))
+  }));
+  mainSteps = t.mainSteps.map(s => ({ name: s, seconds: 0 }));
+  renderAll();
+}
+
+// ===== データインポート =====
+function importChartData(data) {
+  // data = { name, parts: [{name, mergeAt, branches:[{name,steps:[{name,seconds}]}], steps:[{name,seconds}]}], mainSteps: [{name,seconds}] }
+  if (parts.length > 0 || mainSteps.length > 0) {
+    if (!confirm('現在のデータを置き換えますか？')) return;
+  }
+  document.getElementById('product-name').value = data.name || '';
+  parts = (data.parts || []).map(p => ({
+    id: uid(),
+    name: p.name,
+    mergeAt: p.mergeAt || 0,
+    side: p.side || 'right',
+    center: !!p.center,
+    branches: (p.branches || []).map(b => ({
+      id: uid(),
+      name: b.name,
+      steps: (b.steps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0 }))
+    })),
+    steps: (p.steps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0 }))
+  }));
+  mainSteps = (data.mainSteps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0 }));
+  renderAll();
+  saveCurrentChart();
+}
+
+// プリセットデータ
+const PRESETS = {
+  slacks: {
+    name: 'スラックス',
+    parts: [
+      { name: '後身頃', mergeAt: 0, side: 'left', branches: [], steps: [
+        {name:'投入NOチェック',seconds:16},{name:'後身止めミシン',seconds:36},{name:'脇P向布取り',seconds:20},{name:'天狗カット',seconds:28},{name:'袋セット入れ',seconds:58},{name:'ビス穴芯はり',seconds:8},{name:'ハンキング',seconds:20},
+        {name:'後身ロック(サージング)',seconds:60},{name:'脇Pロック',seconds:12},{name:'ビスP向ロック',seconds:16},{name:'前立、天狗ロック',seconds:8},{name:'クツズレロック',seconds:8},{name:'ビスダーツ',seconds:20},{name:'ビスダーツアイロン',seconds:38}
+      ]},
+      { name: '前身頃', mergeAt: 0, side: 'right', branches: [], steps: [
+        {name:'前身ロック',seconds:74},{name:'ベンネーム付け',seconds:8},{name:'脇P向布付け',seconds:10},{name:'ビスP向布付け',seconds:12}
+      ]}
+    ],
+    mainSteps: [
+      {name:'フタ作り',seconds:34},{name:'ビスP位置印',seconds:8},{name:'ビスPテープはり',seconds:8},{name:'Pマシン',seconds:88},{name:'玉だしプレス',seconds:48},{name:'フタアイロン',seconds:20},
+      {name:'脇Pステッチャー',seconds:28},{name:'脇止め縫い',seconds:12},{name:'前タック',seconds:40},{name:'ビス下ステッチ',seconds:64},{name:'ビス上ステッチ',seconds:68},{name:'立P止めヌイ',seconds:18},
+      {name:'脇縫い',seconds:140},{name:'脇、腰割り',seconds:38},{name:'脇袋のり付け',seconds:12},
+      {name:'脇Pかざり入れ',seconds:12},{name:'ビスP飾り',seconds:18},{name:'帯芯カット',seconds:22},{name:'天狗、前立芯貼り',seconds:32},{name:'はな縫い',seconds:22},{name:'天狗縫い',seconds:18},{name:'マーベルト帯に縫い',seconds:94},{name:'天狗返しアイロン',seconds:12},
+      {name:'ゼッパ付け',seconds:18},{name:'前立、天狗付け',seconds:82},{name:'小股縫い',seconds:18},{name:'帯付け',seconds:120},
+      {name:'帯割',seconds:82},{name:'天狗、前立アイロン',seconds:24},{name:'前カン打ち',seconds:24},{name:'ウエスト寸法',seconds:18},{name:'ループ印',seconds:22},{name:'ループ縫い',seconds:10},{name:'ループカット',seconds:58},
+      {name:'左右2本補助ループ付け',seconds:30},{name:'天狗、前立、マトメ',seconds:32},{name:'前立飾り',seconds:48},{name:'内股縫い',seconds:128},
+      {name:'尻縫い',seconds:118},{name:'尻割アイロン',seconds:20},{name:'カンヌキ入れ',seconds:64},{name:'内股脇割り',seconds:28},
+      {name:'股下決め',seconds:48},{name:'クツズレ付け',seconds:48},{name:'裾ロック',seconds:24},{name:'スナップ付け',seconds:22},{name:'ループ付け',seconds:90},
+      {name:'棒シック縫い',seconds:24},{name:'帯中心 中トジ',seconds:60},{name:'腰ルイス',seconds:52},{name:'伝票付け',seconds:30},{name:'裾上げルイス',seconds:58},
+      {name:'天狗ビス穴入れ',seconds:62},{name:'小カン入れ',seconds:24},{name:'ビス、ハナ釦付け',seconds:64},{name:'タッキング',seconds:80},{name:'サドル',seconds:0}
+    ]
+  },
+  product2: {
+    name: '製品2',
+    parts: [
+      // 部品作り（中央・メインラインと同軸）: 工程1-10, 15
+      { name: '部品作り', mergeAt: 0, center: true, side: 'left', branches: [], steps: [
+        {name:'搬送車から取る',seconds:2,num:1},{name:'仕分け',seconds:4,num:2},{name:'ハンキング',seconds:72,num:3},{name:'ダーツ印入れ',seconds:0,num:4},{name:'スキャナー',seconds:2,num:5},
+        {name:'細テープ貼り',seconds:19,num:6},{name:'ハンガー取る',seconds:0,num:7},{name:'パレット乗せる',seconds:4,num:8},{name:'ループ作り',seconds:20,num:9},{name:'天前ロック',seconds:20,num:10},
+        {name:'小物ロック',seconds:24,num:15}
+      ]},
+      // 前身頃（左）: 工程11-14, 15, 17, 20-25
+      { name: '前身頃', mergeAt: 0, side: 'left', branches: [], steps: [
+        {name:'前身ロック',seconds:70,num:11},{name:'三角シック付け(M)',seconds:35,num:12},{name:'前立てバイピン(CO)',seconds:6,num:13},{name:'フタ縫い',seconds:5,num:14},{name:'小物ロック',seconds:24,num:15},
+        {name:'ハナ縫い付け(M)',seconds:30,num:17},{name:'ベンネーム出し',seconds:4,num:20},{name:'切替向布付け',seconds:40,num:21},{name:'ビス向布付け',seconds:30,num:22},{name:'脇Pステッチャー',seconds:60,num:23},
+        {name:'脇P口布縫い',seconds:30,num:24},{name:'タック縫い',seconds:50,num:25}
+      ]},
+      // 後身頃（右）: 工程16, 18-19, 26-35
+      { name: '後身頃', mergeAt: 0, side: 'right', branches: [], steps: [
+        {name:'後身サージング',seconds:52,num:16},{name:'尻グセ取り',seconds:55,num:18},{name:'後身ダーツ縫い',seconds:48,num:19},{name:'ダーツ処理',seconds:28,num:26},{name:'ビスP印入れ',seconds:18,num:27},
+        {name:'ビスPマシン',seconds:57,num:28},{name:'玉出しプレス',seconds:36,num:29},{name:'フタ返しアイロン',seconds:3,num:30},{name:'フタステッチ',seconds:3,num:31},{name:'ビスP口布縫い',seconds:0,num:32},
+        {name:'ビスステッチ',seconds:50,num:33},{name:'袋止め',seconds:0,num:34},{name:'穴大小線入れ',seconds:0,num:35}
+      ]}
+    ],
+    // メインライン: 脇入れ(工程36)〜搬送車にハンガー(工程97)
+    mainSteps: [
+      {name:'脇入れ',seconds:75,num:36},{name:'脇上部割り',seconds:40,num:37},{name:'天狗裏付け',seconds:15,num:38},{name:'天狗返しアイロン',seconds:30,num:39},{name:'ファスナー付け',seconds:25,num:40},
+      {name:'前立て合わせ縫い',seconds:35,num:41},{name:'たてP上部ステッチ',seconds:6,num:42},{name:'脇P袋飾り',seconds:35,num:43},{name:'ビスP袋飾り',seconds:45,num:44},{name:'天狗合わせ縫い',seconds:25,num:45},
+      {name:'帯芯カット',seconds:6,num:46},{name:'帯芯貼り',seconds:22,num:47},{name:'縫い代カット',seconds:15,num:48},{name:'腰裏付け',seconds:51,num:49},{name:'帯付け',seconds:107,num:50},
+      {name:'持ち出し縫い(M)',seconds:40,num:51},{name:'帯芯、腰裏カット',seconds:16,num:52},{name:'帯割りアイロン',seconds:70,num:53},{name:'持ち出し返し',seconds:21,num:54},{name:'前カン付け',seconds:70,num:55},
+      {name:'ウエスト決め',seconds:0,num:56},{name:'ループ位置印入れ',seconds:15,num:57},{name:'帯ステッチ(CO)',seconds:8,num:58},{name:'持ち出し縫い(CO)',seconds:49,num:59},{name:'ループ付け(上)',seconds:22,num:60},
+      {name:'ループ付け',seconds:56,num:61},{name:'角縫い(M)(CO)',seconds:18,num:62},{name:'カラス天狗作り(CO)',seconds:0,num:63},{name:'小股縫い',seconds:45,num:64},{name:'前立てステッチ',seconds:40,num:65},
+      {name:'天狗ステッチ',seconds:60,num:66},{name:'内股縫い',seconds:60,num:67},{name:'脇、内股割りアイロン',seconds:78,num:68},{name:'穴入れ',seconds:0,num:69},{name:'尻割りアイロン',seconds:34,num:70},
+      {name:'尻割りアイロン',seconds:0,num:71},{name:'ループ付け(上)',seconds:0,num:72},{name:'後ループ付け',seconds:88,num:73},{name:'チョウシック付け(CO)',seconds:0,num:74},{name:'大カンヌキ',seconds:112,num:75},
+      {name:'棒シック付け(M、CO)',seconds:44,num:76},{name:'穴かがり',seconds:20,num:77},{name:'小カンヌキ',seconds:40,num:78},{name:'股下測り',seconds:0,num:79},{name:'自動クツズレ付け',seconds:60,num:80},
+      {name:'クツズレ折り',seconds:20,num:81},{name:'クツズレ付け(本縫い)',seconds:13,num:82},{name:'スナップ付け(ダブル)',seconds:5,num:83},{name:'裾ロック(ダブル)',seconds:10,num:84},{name:'裾カタゲ',seconds:40,num:85},
+      {name:'カプラ折り(ダブル)',seconds:30,num:86},{name:'伝票付け',seconds:17,num:87},{name:'ボタン印入れ',seconds:0,num:88},{name:'天狗ボタン付け',seconds:14,num:89},{name:'ビスボタン付け',seconds:21,num:90},
+      {name:'芯止めルイス',seconds:42,num:91},{name:'スナップ付け(ダブル)',seconds:5,num:92},{name:'腰裏反マツリ',seconds:25,num:93},{name:'タッキング',seconds:56,num:94},{name:'スキャナー',seconds:3,num:95},
+      {name:'搬送車に乗せる(製品)',seconds:2,num:96},{name:'搬送車にハンガー',seconds:2,num:97}
+    ]
+  }
+};
+
+// ===== データ操作 =====
+function addPartByName(name) {
+  const id = uid();
+  parts.push({ id, name, mergeAt: 0, side: 'right', branches: [], steps: [] });
+  expandedPartId = id;
+  renderAll();
+}
+
+function removePart(id) {
+  if (!confirm('このパーツを削除しますか？')) return;
+  parts = parts.filter(p => p.id !== id);
+  renderAll();
+}
+
+function addBranch(partId, name) {
+  const part = parts.find(p => p.id === partId);
+  if (!part) return;
+  part.branches.push({ id: uid(), name, steps: [] });
+  expandedPartId = partId;
+  renderAll();
+}
+
+function removeBranch(partId, branchId) {
+  const part = parts.find(p => p.id === partId);
+  if (!part) return;
+  part.branches = part.branches.filter(b => b.id !== branchId);
+  renderAll();
+}
+
+function addStepToBranch(partId, branchId, name) {
+  const part = parts.find(p => p.id === partId);
+  if (!part) return;
+  const branch = part.branches.find(b => b.id === branchId);
+  if (!branch) return;
+  branch.steps.push({ name, seconds: 0 });
+  expandedPartId = partId;
+  renderAll();
+}
+
+function removeStepFromBranch(partId, branchId, idx) {
+  const part = parts.find(p => p.id === partId);
+  if (!part) return;
+  const branch = part.branches.find(b => b.id === branchId);
+  if (!branch) return;
+  branch.steps.splice(idx, 1);
+  renderAll();
+}
+
+function addTrunkStep(partId, name) {
+  const part = parts.find(p => p.id === partId);
+  if (!part) return;
+  part.steps.push({ name, seconds: 0 });
+  expandedPartId = partId;
+  renderAll();
+}
+
+function removeTrunkStep(partId, idx) {
+  const part = parts.find(p => p.id === partId);
+  if (!part) return;
+  part.steps.splice(idx, 1);
+  renderAll();
+}
+
+function setMergeAt(partId, val) {
+  const part = parts.find(p => p.id === partId);
+  if (part) {
+    part.mergeAt = parseInt(val) || 0;
+    saveData();
+  }
+}
+
+function movePartUpDown(partId, dir) {
+  const idx = parts.findIndex(p => p.id === partId);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= parts.length) return;
+  [parts[idx], parts[newIdx]] = [parts[newIdx], parts[idx]];
+  renderAll();
+}
+
+function addMainStepByName(name) {
+  mainSteps.push({ name, seconds: 0 });
+  mainlineExpanded = true;
+  renderAll();
+}
+
+function scrollToPartArea(id) {
+  setTimeout(() => {
+    const el = id === 'mainline'
+      ? document.getElementById('mainline-card')
+      : document.querySelector(`[data-part="${id}"]`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const sheetEl = document.getElementById('sheet');
+      const sheetH = sheetEl.classList.contains('open') ? sheetEl.offsetHeight : 0;
+      // スクロールして、パーツカードの下端がシートの上に見えるようにする
+      const targetY = window.scrollY + rect.bottom - (window.innerHeight - sheetH) + 20;
+      if (rect.bottom > window.innerHeight - sheetH) {
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
+    }
+  }, 50);
+}
+
+function removeMainStep(idx) {
+  mainSteps.splice(idx, 1);
+  renderAll();
+}
+
+// 並び替え
+function moveStep(partId, branchId, idx, dir) {
+  let arr;
+  if (partId === 'main') {
+    arr = mainSteps;
+  } else {
+    const part = parts.find(p => p.id === partId);
+    if (!part) return;
+    if (branchId === 'trunk') {
+      arr = part.steps;
+    } else {
+      const branch = part.branches.find(b => b.id === branchId);
+      if (!branch) return;
+      arr = branch.steps;
+    }
+  }
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  renderAll();
+}
+
+function updateTime(partId, branchId, stepIdx, minEl, secEl) {
+  const m = parseInt(minEl.value) || 0;
+  const s = parseInt(secEl.value) || 0;
+  const sec = m * 60 + s;
+  if (partId === 'main') {
+    mainSteps[stepIdx].seconds = sec;
+  } else {
+    const part = parts.find(p => p.id === partId);
+    if (!part) return;
+    if (branchId === 'trunk') {
+      part.steps[stepIdx].seconds = sec;
+    } else {
+      const branch = part.branches.find(b => b.id === branchId);
+      if (branch) branch.steps[stepIdx].seconds = sec;
+    }
+  }
+  updateTotal();
+  saveData();
+}
+
+// ===== UI描画 =====
+function renderAll() {
+  renderParts();
+  renderMainSteps();
+  updateTotal();
+  saveData();
+}
+
+function togglePart(id) {
+  expandedPartId = (expandedPartId === id) ? null : id;
+  renderParts();
+  updateTotal();
+}
+
+function countPartSteps(part) {
+  let n = 0;
+  part.branches.forEach(b => n += b.steps.length);
+  n += part.steps.length;
+  return n;
+}
+
+function renderParts() {
+  const area = document.getElementById('parts-area');
+  area.innerHTML = '';
+  parts.forEach(part => {
+    const isExpanded = expandedPartId === part.id;
+    const card = document.createElement('div');
+    card.className = 'part-card' + (isExpanded ? '' : ' collapsed');
+    card.setAttribute('data-part', part.id);
+
+    const partSec = calcPartSeconds(part);
+    const stepCount = countPartSteps(part);
+    const pi = parts.indexOf(part);
+    let html = `<div class="part-card-header">
+      <span class="part-drag-handle" ontouchstart="initPartDrag(this.closest('.part-card'),'${part.id}',${pi},event)" onclick="event.stopPropagation()">☰</span>
+      <span class="part-name">${esc(part.name)}</span>
+      <span class="part-step-count">${stepCount}工程</span>
+      <span class="part-time">${formatTime(partSec)}</span>
+      <button class="part-toggle-btn" onclick="event.stopPropagation();togglePart('${part.id}')">${isExpanded ? '▲' : '▼'}</button>
+      <button class="part-delete-btn" onclick="event.stopPropagation();removePart('${part.id}')">削除</button>
+    </div>`;
+
+    // 合流先セレクタ
+    const mergeAt = part.mergeAt || 0;
+    let mergeHtml = `<div class="part-merge-row">
+      <span class="part-merge-label">合流先</span>
+      <select class="part-merge-select" onchange="setMergeAt('${part.id}',this.value)" onclick="event.stopPropagation()">
+        <option value="0" ${mergeAt === 0 ? 'selected' : ''}>メインライン先頭</option>`;
+    mainSteps.forEach((ms, mi) => {
+      mergeHtml += `<option value="${mi + 1}" ${mergeAt === mi + 1 ? 'selected' : ''}>${mi + 1}. ${esc(ms.name)} の前</option>`;
+    });
+    mergeHtml += `</select></div>`;
+    html += mergeHtml;
+
+    html += `<div class="part-card-body">`;
+
+    // 枝（サブパーツ）
+    part.branches.forEach(branch => {
+      html += `<div class="branch-section" data-branch="${branch.id}">`;
+      html += `<div class="branch-header">
+        <span class="branch-name">${esc(branch.name)}</span>
+        <span class="branch-time">${formatTime(branch.steps.reduce((a,s) => a+s.seconds, 0))}</span>
+        <button class="branch-delete-btn" onclick="removeBranch('${part.id}','${branch.id}')">×</button>
+      </div>`;
+
+      branch.steps.forEach((step, si) => {
+        html += `<div class="step-item in-branch" ">
+          <span class="step-drag-handle" ontouchstart="initDrag(this.parentElement,'${part.id}','${branch.id}',${si},event)">☰</span>
+          <span class="step-badge branch-badge">${si + 1}</span>
+          <span class="step-name-label">${esc(step.name)}</span>
+          <span class="step-time-group">
+            <input type="number" class="step-time-input" value="${getMin(step.seconds) || ''}" placeholder="0" min="0" inputmode="numeric"
+              onchange="updateTime('${part.id}','${branch.id}',${si},this,this.nextElementSibling.nextElementSibling)">
+            <span class="step-time-unit">分</span>
+            <input type="number" class="step-time-input" value="${getSec(step.seconds) || ''}" placeholder="0" min="0" max="59" inputmode="numeric"
+              onchange="updateTime('${part.id}','${branch.id}',${si},this.previousElementSibling.previousElementSibling,this)">
+            <span class="step-time-unit">秒</span>
+          </span>
+          <button class="step-delete" onclick="removeStepFromBranch('${part.id}','${branch.id}',${si})">×</button>
+        </div>`;
+      });
+
+      html += `<div class="add-row in-branch" onclick="openSheet('branchStep','${part.id}','${branch.id}')">
+        <span class="add-icon orange">+</span>
+        <span class="add-label orange">工程を追加</span>
+      </div>`;
+      html += `</div>`; // branch-section
+    });
+
+    // 枝を追加ボタン
+    html += `<div class="add-row" onclick="openSheet('branch','${part.id}')">
+      <span class="add-icon orange">+</span>
+      <span class="add-label orange">枝（サブパーツ）を追加</span>
+    </div>`;
+
+    // トランク（合流後の工程）
+    if (part.branches.length > 0 || part.steps.length > 0) {
+      if (part.branches.length > 0) {
+        html += `<div class="trunk-label">合流後の工程</div>`;
+      }
+
+      part.steps.forEach((step, si) => {
+        html += `<div class="step-item trunk-step" ">
+          <span class="step-drag-handle" ontouchstart="initDrag(this.parentElement,'${part.id}','trunk',${si},event)">☰</span>
+          <span class="step-badge">${si + 1}</span>
+          <span class="step-name-label">${esc(step.name)}</span>
+          <span class="step-time-group">
+            <input type="number" class="step-time-input" value="${getMin(step.seconds) || ''}" placeholder="0" min="0" inputmode="numeric"
+              onchange="updateTime('${part.id}','trunk',${si},this,this.nextElementSibling.nextElementSibling)">
+            <span class="step-time-unit">分</span>
+            <input type="number" class="step-time-input" value="${getSec(step.seconds) || ''}" placeholder="0" min="0" max="59" inputmode="numeric"
+              onchange="updateTime('${part.id}','trunk',${si},this.previousElementSibling.previousElementSibling,this)">
+            <span class="step-time-unit">秒</span>
+          </span>
+          <button class="step-delete" onclick="removeTrunkStep('${part.id}',${si})">×</button>
+        </div>`;
+      });
+    }
+
+    // トランク工程追加
+    html += `<div class="add-row" onclick="openSheet('trunkStep','${part.id}')">
+      <span class="add-icon ${part.branches.length > 0 ? 'purple' : ''}">+</span>
+      <span class="add-label ${part.branches.length > 0 ? 'purple' : ''}">${part.branches.length > 0 ? '合流後の工程を追加' : '工程を追加'}</span>
+    </div>`;
+    html += `</div>`; // part-card-body
+
+    card.innerHTML = html;
+    area.appendChild(card);
+  });
+}
+
+let mainlineExpanded = false;
+
+function toggleMainline() {
+  mainlineExpanded = !mainlineExpanded;
+  updateMainlineUI();
+}
+
+function updateMainlineUI() {
+  const card = document.getElementById('mainline-card');
+  const body = document.getElementById('mainline-body');
+  const toggle = document.getElementById('mainline-toggle');
+  const count = document.getElementById('mainline-count');
+  if (mainlineExpanded) {
+    card.classList.remove('collapsed');
+    body.style.display = 'block';
+    if (toggle) toggle.textContent = '▲';
+  } else {
+    card.classList.add('collapsed');
+    body.style.display = 'none';
+    if (toggle) toggle.textContent = '▼';
+  }
+  count.textContent = mainSteps.length + '工程';
+}
+
+function renderMainSteps() {
+  const c = document.getElementById('mainline-steps');
+  c.innerHTML = '';
+  mainSteps.forEach((step, si) => {
+    const div = document.createElement('div');
+    div.className = 'step-item';
+    div.innerHTML = `
+      <span class="step-drag-handle" ontouchstart="initDrag(this.parentElement,'main','',${si},event)">☰</span>
+      <span class="step-badge main">${si + 1}</span>
+      <span class="step-name-label">${esc(step.name)}</span>
+      <span class="step-time-group">
+        <input type="number" class="step-time-input" value="${getMin(step.seconds) || ''}" placeholder="0" min="0" inputmode="numeric"
+          onchange="updateTime('main','',${si},this,this.nextElementSibling.nextElementSibling)">
+        <span class="step-time-unit">分</span>
+        <input type="number" class="step-time-input" value="${getSec(step.seconds) || ''}" placeholder="0" min="0" max="59" inputmode="numeric"
+          onchange="updateTime('main','',${si},this.previousElementSibling.previousElementSibling,this)">
+        <span class="step-time-unit">秒</span>
+      </span>
+      <button class="step-delete" onclick="removeMainStep(${si})">×</button>
+    `;
+    c.appendChild(div);
+  });
+  updateMainlineUI();
+}
+
+function updateTotal() {
+  let total = 0;
+  parts.forEach(p => {
+    p.branches.forEach(b => b.steps.forEach(s => total += s.seconds));
+    p.steps.forEach(s => total += s.seconds);
+  });
+  mainSteps.forEach(s => total += s.seconds);
+  document.getElementById('total-time').textContent = formatTime(total);
+}
+
+// ===== ボトムシート =====
+function openSheet(mode, ctx1, ctx2) {
+  sheetMode = mode;
+  sheetContext = { partId: ctx1, branchId: ctx2 };
+  sheetAddedCount = 0;
+  document.getElementById('sheet-added-count').textContent = '';
+  // 該当パーツを展開
+  if (ctx1 && mode !== 'part') expandedPartId = ctx1;
+
+  const titles = {
+    part: 'パーツを選択',
+    branch: '枝（サブパーツ）を選択',
+    branchStep: '工程を選択',
+    trunkStep: '工程を選択',
+    mainStep: '工程を選択',
+  };
+  document.getElementById('sheet-title').textContent = titles[mode] || '選択';
+  document.getElementById('sheet-search').value = '';
+  renderSheetList('');
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+  // iOS: シート表示中はbodyスクロールをロック（キーボードでシートがずれるのを防止）
+  sheetSavedScrollY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.top = -sheetSavedScrollY + 'px';
+}
+
+function closeSheet() {
+  const scrollTarget = sheetContext && sheetContext.partId ? sheetContext.partId : null;
+  document.getElementById('sheet-overlay').classList.remove('open');
+  const sheetEl = document.getElementById('sheet');
+  sheetEl.classList.remove('open');
+  sheetEl.style.bottom = '0px';
+  sheetEl.style.height = '';
+  sheetEl.style.maxHeight = '';
+  // bodyスクロールロック解除
+  document.body.style.position = '';
+  document.body.style.width = '';
+  document.body.style.top = '';
+  window.scrollTo(0, sheetSavedScrollY || 0);
+  sheetMode = null; sheetContext = null;
+  // シート閉じた後、編集してたパーツが見える位置にスクロール
+  if (scrollTarget) scrollToPartArea(scrollTarget);
+}
+
+function filterSheet() { renderSheetList(document.getElementById('sheet-search').value); }
+
+function getRecommendedOps() {
+  if (!sheetContext || !sheetContext.partId) return [];
+  const part = parts.find(p => p.id === sheetContext.partId);
+  if (!part) return [];
+  // パーツ名でおすすめを取得。枝の場合は枝名も見る
+  let recs = PART_OPS_MAP[part.name] || [];
+  if (sheetContext.branchId) {
+    const branch = part.branches.find(b => b.id === sheetContext.branchId);
+    if (branch && PART_OPS_MAP[branch.name]) {
+      recs = [...new Set([...PART_OPS_MAP[branch.name], ...recs])];
+    }
+  }
+  return recs;
+}
+
+function renderSheetList(query) {
+  const list = document.getElementById('sheet-list');
+  list.innerHTML = '';
+  const isPart = (sheetMode === 'part' || sheetMode === 'branch');
+  const items = isPart ? allParts() : allOps();
+  const filtered = query ? items.filter(i => i.includes(query)) : items;
+
+  if (query && !items.includes(query)) {
+    const el = document.createElement('div');
+    el.className = 'sheet-item sheet-item-add';
+    el.textContent = `「${query}」を追加`;
+    el.onclick = () => selectSheetItem(query, true, el);
+    list.appendChild(el);
+  }
+
+  if (!query) {
+    // おすすめ工程（パーツに関連するもの）
+    const recs = isPart ? [] : getRecommendedOps();
+    if (recs.length > 0) {
+      const h = document.createElement('div');
+      h.className = 'sheet-section-header';
+      h.textContent = 'おすすめ';
+      list.appendChild(h);
+      recs.forEach(i => list.appendChild(makeSheetItem(i)));
+    }
+
+    const customs = isPart ? customParts : customOps;
+    if (customs.length > 0) {
+      const h = document.createElement('div');
+      h.className = 'sheet-section-header';
+      h.textContent = '追加した項目';
+      list.appendChild(h);
+      customs.forEach(i => list.appendChild(makeSheetItem(i)));
+    }
+    const h2 = document.createElement('div');
+    h2.className = 'sheet-section-header';
+    h2.textContent = 'すべて';
+    list.appendChild(h2);
+  }
+
+  const defaults = isPart ? DEFAULT_PARTS : DEFAULT_OPERATIONS;
+  (query ? filtered : defaults).forEach(i => list.appendChild(makeSheetItem(i)));
+}
+
+function makeSheetItem(name) {
+  const el = document.createElement('div');
+  el.className = 'sheet-item';
+  el.textContent = name;
+  el.onclick = () => selectSheetItem(name, false, el);
+  return el;
+}
+
+function selectSheetItem(name, isCustom, clickedEl) {
+  const isPart = (sheetMode === 'part' || sheetMode === 'branch');
+  if (isCustom) {
+    if (isPart) { customParts.push(name); localStorage.setItem('customParts', JSON.stringify(customParts)); }
+    else { customOps.push(name); localStorage.setItem('customOps', JSON.stringify(customOps)); }
+  }
+
+  try {
+    if (sheetMode === 'part') addPartByName(name);
+    else if (sheetMode === 'branch') addBranch(sheetContext.partId, name);
+    else if (sheetMode === 'branchStep') addStepToBranch(sheetContext.partId, sheetContext.branchId, name);
+    else if (sheetMode === 'trunkStep') addTrunkStep(sheetContext.partId, name);
+    else if (sheetMode === 'mainStep') addMainStepByName(name);
+  } catch(e) {
+    console.error('selectSheetItem error:', e);
+  }
+
+  // 工程追加はシートを閉じずに連続追加
+  const stayOpen = (sheetMode === 'branchStep' || sheetMode === 'trunkStep' || sheetMode === 'mainStep');
+  if (stayOpen) {
+    sheetAddedCount++;
+    const countEl = document.getElementById('sheet-added-count');
+    countEl.textContent = '✓ ' + sheetAddedCount + '件追加済み';
+    countEl.classList.remove('fade-out');
+    countEl.style.opacity = '1';
+    void countEl.offsetWidth;
+    // 1.5秒後にフェードアウト
+    clearTimeout(countEl._fadeTimer);
+    countEl._fadeTimer = setTimeout(() => countEl.classList.add('fade-out'), 1500);
+    // フラッシュアニメーション
+    if (clickedEl) {
+      clickedEl.classList.remove('just-added');
+      void clickedEl.offsetWidth;
+      clickedEl.classList.add('just-added');
+    }
+    // 検索欄をクリアして次の選択に備える
+    document.getElementById('sheet-search').value = '';
+    renderSheetList('');
+  } else {
+    closeSheet();
+  }
+}
+
+// ===== SVG工程表（branches対応） =====
+function renderChart() {
+  try {
+    const data = buildChartData();
+    const svg = buildSVG(data);
+    document.getElementById('chart-inner').innerHTML = svg;
+    zoomReset();
+  } catch(e) {
+    document.getElementById('chart-inner').innerHTML = '<p style="color:red;padding:20px;">エラー: ' + e.message + '</p>';
+    console.error('renderChart error:', e);
+  }
+}
+
+function buildChartData() {
+  // メインラインの流れに沿って通し番号を振る
+  // パーツはその合流位置で番号が入る
+  let num = 1;
+
+  // パーツをmergeAtでグループ化
+  const partsByMerge = {};
+  parts.forEach((p, pi) => {
+    const mi = p.mergeAt || 0;
+    if (!partsByMerge[mi]) partsByMerge[mi] = [];
+    partsByMerge[mi].push(pi);
+  });
+
+  // 番号付きパーツデータを準備（元の番号があればそのまま使う）
+  const numberedParts = parts.map(p => ({
+    ...p,
+    mergeAt: p.mergeAt || 0,
+    side: p.side || 'right',
+    branches: p.branches.map(b => ({
+      ...b,
+      steps: b.steps.map(s => ({ ...s, num: s.num || 0 }))
+    })),
+    steps: p.steps.map(s => ({ ...s, num: s.num || 0 }))
+  }));
+
+  // 先頭合流（mergeAt=0）のパーツに番号を振る
+  (partsByMerge[0] || []).forEach(pi => {
+    const np = numberedParts[pi];
+    np.branches.forEach(b => { b.steps.forEach(s => { if (!s.num) s.num = num++; else num = Math.max(num, s.num + 1); }); });
+    np.steps.forEach(s => { if (!s.num) s.num = num++; else num = Math.max(num, s.num + 1); });
+  });
+
+  // メイン工程を順に処理
+  const numberedMainSteps = mainSteps.map((ms, mi) => {
+    // この工程の前に合流するパーツ（mergeAt = mi+1）
+    (partsByMerge[mi + 1] || []).forEach(pi => {
+      const np = numberedParts[pi];
+      np.branches.forEach(b => { b.steps.forEach(s => { if (!s.num) s.num = num++; else num = Math.max(num, s.num + 1); }); });
+      np.steps.forEach(s => { if (!s.num) s.num = num++; else num = Math.max(num, s.num + 1); });
+    });
+    const n = ms.num || num++;
+    if (ms.num) num = Math.max(num, ms.num + 1);
+    return { ...ms, num: n };
+  });
+
+  return {
+    productName: document.getElementById('product-name').value,
+    parts: numberedParts,
+    mainSteps: numberedMainSteps
+  };
+}
+
+// buildSVGが最後に計算したステップY座標（PDF改ページ用）
+let _lastBuildAllStepYs = [];
+
+function buildSVG(data, mono) {
+  const COL_W = 150;
+  const ROW_H = 46;
+  const TOP = 36;
+  const FONT = '-apple-system, sans-serif';
+  const MERGE_GAP = 20;
+  const TIME_PAD = 8; // 最後の工程の秒数テキストと合流線の被り防止
+
+  // メインラインのY座標を計算
+  // パーツの合流で必要な余白を考慮する
+  const mainStepY = []; // mainStepY[i] = メインライン工程iのY座標
+
+  // 各パーツの全工程数（枝の最大＋トランク）
+  function partTotalRows(p) {
+    const branchMax = p.branches.length > 0
+      ? Math.max(...p.branches.map(b => b.steps.length), 0)
+      : 0;
+    const trunkRows = p.steps.length;
+    if (p.branches.length > 0 && branchMax > 0) {
+      return branchMax + trunkRows + 1; // +1 for merge gap
+    }
+    return Math.max(trunkRows, branchMax);
+  }
+
+  // パーツをmergeAtでグループ化
+  const partsByMerge = {};
+  data.parts.forEach(p => {
+    const m = p.mergeAt || 0;
+    if (!partsByMerge[m]) partsByMerge[m] = [];
+    partsByMerge[m].push(p);
+  });
+
+  // メインライン各工程の前に必要な余白を計算
+  let y = TOP;
+  if (data.productName) y += 22;
+
+  const mergePointY = {}; // mergePointY[mergeAt値] = 合流線のY座標
+
+  // mergeAt=0のパーツ（先頭合流）の高さ
+  const headParts = partsByMerge[0] || [];
+  if (headParts.length > 0) {
+    const maxRows = Math.max(...headParts.map(p => partTotalRows(p)));
+    y += maxRows * ROW_H + TIME_PAD;
+    mergePointY[0] = y; // 先頭合流点
+    y += MERGE_GAP;
+  }
+
+  data.mainSteps.forEach((ms, mi) => {
+    // この工程の前に合流するパーツがあるか（mergeAt = mi+1 は「mi+1番目の工程の前」）
+    const mergingParts = partsByMerge[mi + 1] || [];
+    if (mergingParts.length > 0) {
+      const maxRows = Math.max(...mergingParts.map(p => partTotalRows(p)));
+      y += maxRows * ROW_H + TIME_PAD;
+      mergePointY[mi + 1] = y; // パーツの底 = 合流点
+      y += MERGE_GAP;
+    }
+    mainStepY.push(y);
+    y += ROW_H;
+  });
+
+  // パーツを左右に振り分け、メインラインを中央に配置
+  let maxLeftCols = 0;
+  let maxRightCols = 0;
+  Object.values(partsByMerge).forEach(group => {
+    let leftCols = 0, rightCols = 0;
+    group.forEach(p => {
+      if (p.center) return; // 中央配置パーツはカウントしない
+      const cols = Math.max(1, p.branches.length);
+      if (p.side === 'left') leftCols += cols;
+      else rightCols += cols;
+    });
+    if (leftCols > maxLeftCols) maxLeftCols = leftCols;
+    if (rightCols > maxRightCols) maxRightCols = rightCols;
+  });
+
+  const leftWidth = maxLeftCols * COL_W;
+  const mainCx = leftWidth + (maxLeftCols > 0 ? 210 : 80); // 左パーツとの間隔を広く
+  const partAreaRight = mainCx + 200; // 右パーツエリアの開始X（間隔を広く）
+  const totalW = Math.max(partAreaRight + maxRightCols * COL_W + 120, mainCx + 200, 400);
+  const totalH = y + ROW_H + 30;
+
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">`;
+  s += `<rect width="${totalW}" height="${totalH}" fill="white"/>`;
+
+  // 製品名
+  if (data.productName) {
+    s += `<text x="${totalW/2}" y="28" text-anchor="middle" font-size="18" font-weight="bold" font-family="${FONT}" fill="#1c1c1e">${esc(data.productName)}</text>`;
+  }
+
+  // メインライン描画
+  data.mainSteps.forEach((step, si) => {
+    const sy = mainStepY[si];
+    if (si === 0 && headParts.length === 0) {
+      // 何もない場合は上から線を引かない
+    } else if (si === 0) {
+      const fromY = mergePointY[0] !== undefined ? mergePointY[0] : sy - MERGE_GAP;
+      s += svgLine(mainCx, fromY, mainCx, sy - 14);
+    } else {
+      const prevEnd = mainStepY[si - 1] + 14;
+      s += svgLine(mainCx, prevEnd, mainCx, sy - 14);
+    }
+    s += svgNode(mainCx, sy, step.num, mono ? '#1c1c1e' : '#34c759', step.name, mono);
+    s += `<text x="${mainCx+24}" y="${sy+5}" font-size="16" font-weight="500" font-family="${FONT}" fill="#1c1c1e">${esc(step.name)}</text>`;
+    if (step.seconds > 0) {
+      s += `<text x="${mainCx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+    }
+  });
+
+  // パーツ描画（合流位置ごと）
+  Object.keys(partsByMerge).sort((a,b) => a - b).forEach(mergeIdx => {
+    const group = partsByMerge[mergeIdx];
+    const mi = parseInt(mergeIdx);
+
+    // 合流先のY座標（mergePointYから取得）
+    const mergeY = mergePointY[mi] !== undefined
+      ? mergePointY[mi]
+      : mi === 0
+        ? (mainStepY[0] || TOP + 50) - MERGE_GAP / 2
+        : mainStepY[mi] ? mainStepY[mi] - MERGE_GAP / 2 : mainStepY[mainStepY.length - 1] + ROW_H;
+
+    // グループ内全パーツの頭の位置を揃える
+    const groupMaxRows = Math.max(...group.map(p => partTotalRows(p)));
+
+    let leftColOff = 0;
+    let rightColOff = 0;
+    group.forEach(part => {
+      const nCols = Math.max(1, part.branches.length);
+      const isLeft = part.side === 'left';
+      let px, pcx;
+      if (part.center) {
+        // 中央配置：メインラインと同軸
+        pcx = mainCx;
+        px = mainCx - nCols * COL_W / 2;
+      } else if (isLeft) {
+        // 左パーツ：メインラインの左に配置（右端から左へ伸ばす）
+        px = mainCx - 200 - leftColOff * COL_W - nCols * COL_W;
+        pcx = px + nCols * COL_W / 2;
+        leftColOff += nCols;
+      } else {
+        px = partAreaRight + rightColOff * COL_W;
+        pcx = px + nCols * COL_W / 2;
+        rightColOff += nCols;
+      }
+
+      if (part.branches.length > 0) {
+        // === 枝ありパーツ ===
+        const branchMax = Math.max(...part.branches.map(b => b.steps.length), 0);
+        const partTopY = mergeY - groupMaxRows * ROW_H - TIME_PAD; // 全パーツ同じ高さで揃える
+
+        // パーツ名
+        s += `<text x="${pcx}" y="${partTopY - 8}" text-anchor="middle" font-size="18" font-weight="700" font-family="${FONT}" fill="#1c1c1e">${esc(part.name)}</text>`;
+
+        // 各枝
+        part.branches.forEach((branch, bi) => {
+          const bx = px + bi * COL_W + COL_W / 2;
+          const triY = partTopY + 12;
+          const branchColor = mono ? '#1c1c1e' : '#ff9500';
+          s += `<text x="${bx}" y="${triY - 12}" text-anchor="middle" font-size="16" font-weight="500" font-family="${FONT}" fill="${branchColor}">${esc(branch.name)}</text>`;
+          s += `<polygon points="${bx-7},${triY-7} ${bx+7},${triY-7} ${bx},${triY+4}" fill="none" stroke="${branchColor}" stroke-width="1.2"/>`;
+
+          branch.steps.forEach((step, si) => {
+            const sy = partTopY + 32 + si * ROW_H;
+            if (si === 0) s += svgLine(bx, triY + 5, bx, sy - 14);
+            else {
+              const py = partTopY + 32 + (si - 1) * ROW_H;
+              s += svgLine(bx, py + 14, bx, sy - 14);
+            }
+            s += svgNode(bx, sy, step.num, branchColor, step.name, mono);
+            s += svgStepText(bx+24, sy+5, step.name, 10);
+            if (step.seconds > 0) {
+              s += `<text x="${bx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+            }
+          });
+
+          // 枝→合流点
+          const branchEndY = branch.steps.length > 0 ? partTopY + 32 + (branch.steps.length - 1) * ROW_H + 14 : triY + 5;
+          const bMergeY = partTopY + 32 + branchMax * ROW_H;
+          s += svgLine(bx, branchEndY, bx, bMergeY);
+          if (Math.abs(bx - pcx) > 3) s += svgLine(bx, bMergeY, pcx, bMergeY);
+        });
+
+        // トランク工程
+        const trunkStartY = partTopY + 32 + branchMax * ROW_H + ROW_H / 2;
+        const trunkColor = mono ? '#1c1c1e' : '#af52de';
+        part.steps.forEach((step, si) => {
+          const sy = trunkStartY + si * ROW_H;
+          if (si === 0) s += svgLine(pcx, trunkStartY - ROW_H / 2, pcx, sy - 14);
+          else {
+            const py = trunkStartY + (si - 1) * ROW_H;
+            s += svgLine(pcx, py + 14, pcx, sy - 14);
+          }
+          s += svgNode(pcx, sy, step.num, trunkColor, step.name, mono);
+          s += svgStepText(pcx+24, sy+5, step.name, 12);
+          if (step.seconds > 0) {
+            s += `<text x="${pcx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+          }
+        });
+
+        // パーツ→メインライン合流線
+        const partEndY = part.steps.length > 0
+          ? trunkStartY + (part.steps.length - 1) * ROW_H + 14
+          : partTopY + 32 + branchMax * ROW_H;
+        s += svgLine(pcx, partEndY, pcx, mergeY);
+        if (!part.center) {
+          s += svgLine(pcx, mergeY, mainCx, mergeY); // 中央パーツは水平線不要
+        }
+
+      } else {
+        // === 枝なし単純パーツ ===
+        const totalSteps = part.steps.length;
+        const partTopY = mergeY - groupMaxRows * ROW_H - TIME_PAD; // 全パーツ同じ高さで揃える
+
+        // パーツ名 + ▽
+        s += `<text x="${pcx}" y="${partTopY - 8}" text-anchor="middle" font-size="18" font-weight="600" font-family="${FONT}" fill="#1c1c1e">${esc(part.name)}</text>`;
+        const triY = partTopY + 12;
+        s += `<polygon points="${pcx-8},${triY-8} ${pcx+8},${triY-8} ${pcx},${triY+5}" fill="none" stroke="#1c1c1e" stroke-width="1.3"/>`;
+
+        part.steps.forEach((step, si) => {
+          const sy = partTopY + 32 + si * ROW_H;
+          if (si === 0) s += svgLine(pcx, triY + 6, pcx, sy - 14);
+          else {
+            const py = partTopY + 32 + (si - 1) * ROW_H;
+            s += svgLine(pcx, py + 14, pcx, sy - 14);
+          }
+          s += svgNode(pcx, sy, step.num, '#1c1c1e', step.name, mono);
+          s += svgStepText(pcx+24, sy+5, step.name, 12);
+          if (step.seconds > 0) {
+            s += `<text x="${pcx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+          }
+        });
+
+        // パーツ→メインライン合流線
+        if (totalSteps > 0) {
+          const lastStepY = partTopY + 32 + (totalSteps - 1) * ROW_H + 14;
+          s += svgLine(pcx, lastStepY, pcx, mergeY);
+        } else {
+          s += svgLine(pcx, triY + 6, pcx, mergeY);
+        }
+        if (!part.center) {
+          s += svgLine(pcx, mergeY, mainCx, mergeY); // 中央パーツは水平線不要
+        }
+      }
+
+      // colOff は isLeft の分岐内で leftColOff/rightColOff として加算済み
+    });
+  });
+
+  // 合計
+  let totalSec = 0;
+  data.parts.forEach(p => {
+    p.branches.forEach(b => b.steps.forEach(st => totalSec += st.seconds));
+    p.steps.forEach(st => totalSec += st.seconds);
+  });
+  data.mainSteps.forEach(st => totalSec += st.seconds);
+
+  const lastMainY = mainStepY.length > 0 ? mainStepY[mainStepY.length - 1] : y;
+  const summaryY = lastMainY + ROW_H + 10;
+  s += `<rect x="${mainCx-10}" y="${summaryY-12}" width="18" height="18" rx="1" fill="none" stroke="#1c1c1e" stroke-width="1.5"/>`;
+  s += `<text x="${mainCx+16}" y="${summaryY+2}" font-size="18" font-weight="700" font-family="${FONT}" fill="#1c1c1e">全工程 ${formatTime(totalSec)}</text>`;
+
+  if (data.mainSteps.length > 0) {
+    s += svgLine(mainCx, lastMainY + 14, mainCx, summaryY - 12);
+  }
+
+  s += '</svg>';
+
+  // PDF改ページ用：全ステップのY座標を保存
+  _lastBuildAllStepYs = mainStepY.slice();
+  // パーツの枝・トランクのY座標も追加
+  Object.keys(partsByMerge).forEach(mergeIdx => {
+    const group = partsByMerge[mergeIdx];
+    const groupMaxRows = Math.max(...group.map(p => partTotalRows(p)));
+    group.forEach(part => {
+      const mi = parseInt(mergeIdx);
+      const mergeY = mergePointY[mi];
+      const partTopY = mergeY - groupMaxRows * ROW_H - TIME_PAD; // 全パーツ同じ高さ
+      if (part.branches.length > 0) {
+        const branchMax = Math.max(...part.branches.map(b => b.steps.length), 0);
+        part.branches.forEach(branch => {
+          branch.steps.forEach((step, si) => {
+            _lastBuildAllStepYs.push(partTopY + 32 + si * ROW_H);
+          });
+        });
+        const trunkStartY = partTopY + 32 + branchMax * ROW_H + ROW_H / 2;
+        part.steps.forEach((step, si) => {
+          _lastBuildAllStepYs.push(trunkStartY + si * ROW_H);
+        });
+      } else {
+        part.steps.forEach((step, si) => {
+          _lastBuildAllStepYs.push(partTopY + 32 + si * ROW_H);
+        });
+      }
+    });
+  });
+  _lastBuildAllStepYs.sort((a, b) => a - b);
+
+  return s;
+}
+
+// 工程記号の4分類
+// ○ = 本縫いミシン（デフォルト）
+// 斜線丸 = 特殊ミシン・特殊機械
+// 二重丸 = アイロン・手作業
+// 斜線二重丸 = プレス・アイロンプレス
+const SPECIAL_MACHINE_OPS = [
+  'ロック', 'オーバーロック', 'かがり', '千鳥', '閂止め', 'カンヌキ',
+  'ボタンホール', 'ホール', '穴かがり',
+  'ボタン付け', 'スナップ付け',
+  'まつり', 'ブラインドステッチ',
+  '二本針', 'カバーステッチ', '偏平',
+  'インターロック',
+];
+const IRON_HAND_OPS = [
+  'アイロン', '割りアイロン', '仕上げアイロン', 'つぶしアイロン',
+  '折りアイロン', '片倒しアイロン',
+  'テープ貼り', '肩テープ貼り', '芯貼り',
+  'ぐし取り', 'パット付け', '中とじ', 'ヘム折り',
+  'ケットゲージ', '手まつり', '星止め',
+];
+const PRESS_OPS = [
+  'プレス', '仕上げプレス', '中間プレス', 'アイロンプレス',
+];
+// 返り値: 'normal' | 'special' | 'iron' | 'press'
+function getOpType(name) {
+  if (!name) return 'normal';
+  if (PRESS_OPS.some(op => name.indexOf(op) !== -1)) return 'press';
+  if (IRON_HAND_OPS.some(op => name.indexOf(op) !== -1)) return 'iron';
+  if (SPECIAL_MACHINE_OPS.some(op => name.indexOf(op) !== -1)) return 'special';
+  return 'normal';
+}
+
+function svgHatch(cx, cy, r, color) {
+  // 斜線パターン（参考書準拠：等間隔の平行斜線が丸全体を覆う）
+  // clipPathで丸の中だけに表示
+  const clipId = 'hc' + cx.toFixed(0) + cy.toFixed(0);
+  let s = `<clipPath id="${clipId}"><circle cx="${cx}" cy="${cy}" r="${r * 0.92}"/></clipPath>`;
+  s += `<g clip-path="url(#${clipId})">`;
+  // 3本の等間隔斜線（左下→右上方向）
+  const spacing = r * 0.65;
+  for (let i = -1; i <= 1; i++) {
+    const off = i * spacing;
+    s += `<line x1="${cx-r+off}" y1="${cy+r}" x2="${cx+r+off}" y2="${cy-r}" stroke="${color}" stroke-width="1.4"/>`;
+  }
+  s += '</g>';
+  return s;
+}
+
+function svgNode(cx, cy, num, fill, stepName, mono) {
+  const opType = getOpType(stepName);
+  const R = 14, Ri = 9.5;
+  if (mono) {
+    const clr = '#1c1c1e';
+    let s = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="white" stroke="${clr}" stroke-width="1.5"/>`;
+    if (opType === 'iron' || opType === 'press') {
+      s += `<circle cx="${cx}" cy="${cy}" r="${Ri}" fill="none" stroke="${clr}" stroke-width="1.2"/>`;
+    }
+    if (opType === 'special' || opType === 'press') {
+      const hatchR = opType === 'press' ? Ri : R; // 二重丸は内側の円まで、単丸は外側まで
+      s += svgHatch(cx, cy, hatchR, clr);
+      // 斜線の上に白背景を置いて数字を読みやすく
+      s += `<circle cx="${cx}" cy="${cy}" r="7" fill="white"/>`;
+    }
+    s += `<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="${clr}" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">${num}</text>`;
+    return s;
+  }
+  // プレビュー用
+  let s = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${fill}"/>`;
+  if (opType === 'iron' || opType === 'press') {
+    s += `<circle cx="${cx}" cy="${cy}" r="${Ri}" fill="none" stroke="#fff" stroke-width="1.2"/>`;
+  }
+  if (opType === 'special' || opType === 'press') {
+    const hatchR = opType === 'press' ? Ri : R;
+    s += svgHatch(cx, cy, hatchR, '#fff');
+    // 斜線の上に色付き背景を置いて数字を読みやすく
+    s += `<circle cx="${cx}" cy="${cy}" r="7" fill="${fill}"/>`;
+  }
+  s += `<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">${num}</text>`;
+  return s;
+}
+
+function svgStepText(x, y, name, maxLen) {
+  const truncated = name.length > (maxLen || 12) ? name.slice(0, maxLen || 12) + '…' : name;
+  return `<text x="${x}" y="${y}" font-size="16" font-family="-apple-system, sans-serif" fill="#1c1c1e">${esc(truncated)}</text>`;
+}
+
+function svgLine(x1, y1, x2, y2) {
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1c1c1e" stroke-width="1.2"/>`;
+}
+
+// ===== ドラッグ並び替え =====
+let dragState = null;
+
+function initDrag(el, partId, branchId, idx, e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = el.getBoundingClientRect();
+
+  dragState = {
+    el, partId, branchId, idx,
+    startY: touch.clientY,
+    offsetY: touch.clientY - rect.top,
+    moved: false
+  };
+
+  // 長押し判定（200ms）
+  dragState.timer = setTimeout(() => {
+    el.classList.add('dragging');
+    dragState.active = true;
+    // haptic feedback (if available)
+    if (navigator.vibrate) navigator.vibrate(30);
+  }, 200);
+}
+
+document.addEventListener('touchmove', function(e) {
+  if (!dragState || !dragState.active) {
+    if (dragState && !dragState.active) {
+      const touch = e.touches[0];
+      if (Math.abs(touch.clientY - dragState.startY) > 10) {
+        clearTimeout(dragState.timer);
+        dragState = null;
+      }
+    }
+    return;
+  }
+  e.preventDefault();
+
+  const touch = e.touches[0];
+  const container = dragState.el.parentElement;
+  const siblings = Array.from(container.querySelectorAll('.step-item'));
+
+  // ドラッグオーバー表示
+  siblings.forEach(s => s.classList.remove('drag-over'));
+  for (const sib of siblings) {
+    if (sib === dragState.el) continue;
+    const r = sib.getBoundingClientRect();
+    if (touch.clientY > r.top && touch.clientY < r.bottom) {
+      sib.classList.add('drag-over');
+      dragState.overIdx = siblings.indexOf(sib);
+      break;
+    }
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', function() {
+  if (!dragState) return;
+  clearTimeout(dragState.timer);
+
+  if (dragState.active && dragState.overIdx !== undefined && dragState.overIdx !== dragState.idx) {
+    // 移動実行
+    let arr;
+    if (dragState.partId === 'main') {
+      arr = mainSteps;
+    } else {
+      const part = parts.find(p => p.id === dragState.partId);
+      if (part) {
+        if (dragState.branchId === 'trunk') {
+          arr = part.steps;
+        } else {
+          const branch = part.branches.find(b => b.id === dragState.branchId);
+          if (branch) arr = branch.steps;
+        }
+      }
+    }
+    if (arr) {
+      const [item] = arr.splice(dragState.idx, 1);
+      arr.splice(dragState.overIdx, 0, item);
+      renderAll();
+    }
+  }
+
+  if (dragState.el) dragState.el.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragState = null;
+});
+
+// ===== パーツドラッグ並び替え =====
+let partDragState = null;
+
+function initPartDrag(cardEl, partId, idx, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const touch = e.touches[0];
+
+  partDragState = {
+    el: cardEl, partId, idx,
+    startY: touch.clientY,
+    active: false
+  };
+
+  partDragState.timer = setTimeout(() => {
+    cardEl.classList.add('dragging');
+    partDragState.active = true;
+    if (navigator.vibrate) navigator.vibrate(30);
+  }, 200);
+}
+
+document.addEventListener('touchmove', function(e) {
+  if (!partDragState) return;
+  if (!partDragState.active) {
+    const touch = e.touches[0];
+    if (Math.abs(touch.clientY - partDragState.startY) > 10) {
+      clearTimeout(partDragState.timer);
+      partDragState = null;
+    }
+    return;
+  }
+  e.preventDefault();
+
+  const touch = e.touches[0];
+  const container = document.getElementById('parts-area');
+  const cards = Array.from(container.querySelectorAll('.part-card'));
+
+  cards.forEach(c => c.classList.remove('drag-over'));
+  for (const card of cards) {
+    if (card === partDragState.el) continue;
+    const r = card.getBoundingClientRect();
+    if (touch.clientY > r.top && touch.clientY < r.bottom) {
+      card.classList.add('drag-over');
+      partDragState.overIdx = cards.indexOf(card);
+      break;
+    }
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', function() {
+  if (!partDragState) return;
+  clearTimeout(partDragState.timer);
+
+  if (partDragState.active && partDragState.overIdx !== undefined && partDragState.overIdx !== partDragState.idx) {
+    const [item] = parts.splice(partDragState.idx, 1);
+    parts.splice(partDragState.overIdx, 0, item);
+    renderAll();
+  }
+
+  if (partDragState.el) partDragState.el.classList.remove('dragging');
+  document.querySelectorAll('.part-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+  partDragState = null;
+});
+
+// ===== ピンチズーム＆パン =====
+let scale = 1, panX = 0, panY = 0;
+let pinchStartDist = 0, pinchStartScale = 1;
+let isPanning = false, lastTouchX = 0, lastTouchY = 0;
+
+const viewport = document.getElementById('chart-viewport');
+const inner = document.getElementById('chart-inner');
+
+function updateTransform() {
+  inner.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
+}
+function zoomIn() { scale = Math.min(scale * 1.3, 5); updateTransform(); }
+function zoomOut() { scale = Math.max(scale / 1.3, 0.2); updateTransform(); }
+function zoomReset() { scale = 1; panX = 0; panY = 0; updateTransform(); }
+
+viewport.addEventListener('touchstart', function(e) {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    pinchStartDist = Math.sqrt(dx*dx+dy*dy);
+    pinchStartScale = scale;
+  } else if (e.touches.length === 1) {
+    isPanning = true;
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchmove', function(e) {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    scale = Math.max(0.2, Math.min(5, pinchStartScale * (Math.sqrt(dx*dx+dy*dy) / pinchStartDist)));
+    updateTransform();
+  } else if (e.touches.length === 1 && isPanning) {
+    e.preventDefault();
+    panX += e.touches[0].clientX - lastTouchX;
+    panY += e.touches[0].clientY - lastTouchY;
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+    updateTransform();
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchend', () => { isPanning = false; });
+viewport.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  scale = Math.max(0.2, Math.min(5, scale * (e.deltaY > 0 ? 0.9 : 1.1)));
+  updateTransform();
+}, { passive: false });
+
+// ===== A4画像保存 =====
+function loadJsPDF() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => {
+      // 別のCDNを試す
+      const s2 = document.createElement('script');
+      s2.src = 'https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js';
+      s2.onload = () => resolve();
+      s2.onerror = () => reject(new Error('PDF生成ライブラリの読み込みに失敗しました'));
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  });
+}
+
+async function downloadA4(singlePage) {
+  const svgEl = document.querySelector('#chart-inner svg');
+  if (!svgEl) { switchTab('preview'); setTimeout(() => downloadA4(singlePage), 200); return; }
+
+  const btnId = singlePage ? 'footer-save-1p-btn' : 'footer-save-btn';
+  const btn = document.getElementById(btnId);
+  const origText = btn.textContent;
+  btn.textContent = '準備中...';
+  btn.disabled = true;
+
+  try {
+    await loadJsPDF();
+  } catch(e) {
+    alert(e.message);
+    btn.textContent = origText;
+    btn.disabled = false;
+    return;
+  }
+
+  // A4 at 300dpi: 2480 x 3508 px. マージン10mm（118px）
+  const A4W = 2480, A4H = 3508;
+  const MARGIN = 118;
+  const drawW = A4W - MARGIN * 2;
+  const drawH = A4H - MARGIN * 2;
+
+  // 出力用：白黒SVGを生成
+  const monoSvg = buildSVG(buildChartData(), true);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = monoSvg;
+  const monoSvgEl = tmp.querySelector('svg');
+  const svgW = parseFloat(monoSvgEl.getAttribute('width'));
+  const svgH = parseFloat(monoSvgEl.getAttribute('height'));
+
+  // 横幅をA4描画エリアに合わせるスケール（縦は分割するので横だけで決める）
+  const sc = Math.min(drawW / svgW, 3);
+  const renderedW = svgW * sc;
+  const renderedH = svgH * sc;
+
+  // SVG全体を高解像度canvasに描画
+  const svgData = new XMLSerializer().serializeToString(monoSvgEl);
+  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function() {
+    const fileName = (document.getElementById('product-name').value || '工程表') + '_A4';
+    const { jsPDF } = window.jspdf;
+
+    if (singlePage) {
+      // === 1枚モード：全体をA4 1ページに縮小 ===
+      const canvas = document.createElement('canvas');
+      canvas.width = A4W; canvas.height = A4H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, A4W, A4H);
+
+      const scX = drawW / img.width;
+      const scY = drawH / img.height;
+      const fitSc = Math.min(scX, scY, 4);
+      const w = img.width * fitSc;
+      const h = img.height * fitSc;
+      const x = MARGIN + (drawW - w) / 2;
+      ctx.drawImage(img, x, MARGIN, w, h);
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      pdf.save(fileName + '_1枚.pdf');
+
+    } else {
+      // === 複数ページモード：読みやすいサイズで分割 ===
+      const fullCanvas = document.createElement('canvas');
+      fullCanvas.width = Math.ceil(renderedW);
+      fullCanvas.height = Math.ceil(renderedH);
+      const fullCtx = fullCanvas.getContext('2d');
+      fullCtx.fillStyle = 'white';
+      fullCtx.fillRect(0, 0, fullCanvas.width, fullCanvas.height);
+      fullCtx.drawImage(img, 0, 0, renderedW, renderedH);
+
+      // ステップY座標からページ切れ位置を計算（ノードの間で切る）
+      const stepYs = _lastBuildAllStepYs.map(y => y * sc);
+      const nodeR = 14 * sc;
+      const padAbove = 46 * sc; // ROW_H分の余白
+      const padBelow = 56 * sc; // ROW_H + 秒数テキスト分の余白
+
+      const pageBreaks = [0];
+      let currentPageTop = 0;
+      for (let i = 0; i < stepYs.length; i++) {
+        const bottom = stepYs[i] + padBelow;
+        if (bottom - currentPageTop > drawH) {
+          if (i > 0) {
+            const prevBot = stepYs[i - 1] + padBelow;
+            const curTop = stepYs[i] - padAbove;
+            const breakY = (prevBot + curTop) / 2;
+            pageBreaks.push(breakY);
+            currentPageTop = breakY;
+          }
+        }
+      }
+
+      const pageCount = pageBreaks.length;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      for (let p = 0; p < pageCount; p++) {
+        if (p > 0) pdf.addPage();
+
+        const srcY = pageBreaks[p];
+        const nextY = p + 1 < pageCount ? pageBreaks[p + 1] : renderedH;
+        const sliceH = Math.min(drawH, nextY - srcY);
+
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = A4W;
+        pageCanvas.height = A4H;
+        const pCtx = pageCanvas.getContext('2d');
+        pCtx.fillStyle = 'white';
+        pCtx.fillRect(0, 0, A4W, A4H);
+
+        const offsetX = MARGIN + (drawW - renderedW) / 2;
+        pCtx.drawImage(fullCanvas,
+          0, srcY, renderedW, sliceH,
+          offsetX, MARGIN, renderedW, sliceH
+        );
+
+        if (pageCount > 1) {
+          pCtx.fillStyle = '#8e8e93';
+          pCtx.font = '36px sans-serif';
+          pCtx.textAlign = 'center';
+          pCtx.fillText(`${p + 1} / ${pageCount}`, A4W / 2, A4H - 50);
+        }
+
+        const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      }
+
+      pdf.save(fileName + '.pdf');
+    }
+
+    URL.revokeObjectURL(url);
+    btn.textContent = origText;
+    btn.disabled = false;
+  };
+  img.onerror = function() {
+    alert('SVGの描画に失敗しました');
+    URL.revokeObjectURL(url);
+    btn.textContent = origText;
+    btn.disabled = false;
+  };
+  img.src = url;
+}
+
+// ===== 印刷 =====
+function printChart() {
+  downloadA4(false);
+}
+
+// ===== ナビバー影 =====
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 0);
+});
+
+// ===== キーボード対応（iOS Safari）=====
+if (window.visualViewport) {
+  const sheet = document.getElementById('sheet');
+  function adjustSheetForKeyboard() {
+    if (!sheet.classList.contains('open')) return;
+    const vv = window.visualViewport;
+    const keyboardH = window.innerHeight - vv.height;
+    sheet.style.bottom = keyboardH + 'px';
+    // キーボード表示時はシートの高さを固定（リスト項目が減っても位置が動かない）
+    if (keyboardH > 50) {
+      const h = vv.height + 'px';
+      sheet.style.height = h;
+      sheet.style.maxHeight = h;
+    } else {
+      sheet.style.height = '';
+      sheet.style.maxHeight = '';
+    }
+  }
+  window.visualViewport.addEventListener('resize', adjustSheetForKeyboard);
+  window.visualViewport.addEventListener('scroll', adjustSheetForKeyboard);
+}
+
+// シート内の検索欄フォーカス時、iOS Safariの自動スクロールを抑制
+document.getElementById('sheet-search').addEventListener('focus', function() {
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+  }, 50);
+});
+
+// ===== 初期化 =====
+renderTemplates();
+try {
+  loadAllCharts();
+} catch(e) {
+  console.error('loadAllCharts error:', e);
+  createNewChart();
+}
+// 確実にチップを表示
+renderChartList();
+</script>
+</body>
+</html>
