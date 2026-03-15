@@ -332,6 +332,95 @@ body {
 .footer-btn-secondary { background: rgba(0,122,255,0.12); color: var(--blue); }
 .footer-btn-tertiary { background: rgba(52,199,89,0.12); color: var(--green); }
 
+/* 写真アップロード */
+.photo-upload-card {
+  background: var(--card); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 24px;
+}
+.photo-upload-area {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 28px 16px; gap: 6px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  border: 2px dashed var(--separator); border-radius: var(--radius);
+  margin: 12px; transition: border-color 0.2s;
+}
+.photo-upload-area:active { border-color: var(--blue); }
+.photo-memo-wrap { padding: 0 12px 8px; }
+.photo-memo {
+  width: 100%; box-sizing: border-box; padding: 10px 12px;
+  border: 1px solid var(--separator); border-radius: 10px;
+  font-size: 14px; font-family: inherit; resize: none;
+  background: var(--card-secondary); color: var(--text);
+  -webkit-appearance: none;
+}
+.photo-memo::placeholder { color: var(--text-tertiary); font-size: 13px; }
+.step-item.unread-warning { background: rgba(255,149,0,0.1); border-left: 3px solid #ff9500; }
+.unread-banner { background: rgba(255,149,0,0.12); color: #cc7a00; padding: 10px 14px; border-radius: 10px; margin-bottom: 8px; font-size: 14px; font-weight: 500; display: block; }
+.warning-list { margin-top: 8px; }
+.warning-item { background: rgba(0,122,255,0.08); color: #0066cc; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; font-size: 13px; line-height: 1.4; }
+.photo-upload-icon { font-size: 36px; }
+.photo-upload-text { font-size: 17px; font-weight: 600; color: var(--blue); }
+.photo-upload-hint { font-size: 13px; color: var(--text-tertiary); text-align: center; margin-bottom: 12px; }
+.photo-upload-examples {
+  display: flex; gap: 12px; width: 100%;
+}
+.photo-example {
+  flex: 1; background: var(--card-secondary); border-radius: 10px;
+  padding: 12px 8px; text-align: center;
+}
+.photo-example-icon { font-size: 24px; margin-bottom: 4px; }
+.photo-example-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.photo-example-desc { font-size: 11px; color: var(--text-tertiary); line-height: 1.4; }
+.photo-preview-wrap { padding: 12px; }
+.photo-preview-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px; margin-bottom: 12px;
+}
+.photo-thumb-wrap { position: relative; }
+.photo-thumb {
+  width: 100%; aspect-ratio: 1; border-radius: 8px;
+  object-fit: cover; display: block;
+}
+.photo-thumb-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,0.6); color: #fff; border: none;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.photo-thumb-num {
+  position: absolute; bottom: 4px; left: 4px;
+  background: rgba(0,0,0,0.6); color: #fff; font-size: 11px;
+  padding: 1px 6px; border-radius: 10px; font-weight: 600;
+}
+.photo-preview-actions {
+  display: flex; gap: 8px;
+}
+.photo-action-add {
+  background: rgba(52,199,89,0.12); color: var(--green);
+}
+.photo-action-btn {
+  flex: 1; padding: 12px; border: none; border-radius: var(--radius);
+  font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.photo-action-remove { background: rgba(255,59,48,0.12); color: var(--red); }
+.photo-action-generate { background: var(--blue); color: #fff; }
+.photo-action-generate:disabled { opacity: 0.5; }
+.photo-status {
+  padding: 12px 16px; font-size: 14px; color: var(--text-secondary);
+  text-align: center;
+}
+.photo-status.error { color: var(--red); }
+.photo-status.loading { color: var(--blue); }
+.photo-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid var(--blue); border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* 印刷用スタイル */
 @media print {
   * { overflow: visible !important; }
@@ -457,6 +546,31 @@ body {
   text-transform: uppercase; padding: 20px 20px 6px;
 }
 
+/* テンプレート折りたたみ */
+.template-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; background: var(--card); border-radius: var(--radius);
+  margin-bottom: 8px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.template-toggle:active { background: rgba(255,255,255,0.6); }
+.template-toggle-text { font-size: 14px; color: var(--text-secondary); }
+.template-toggle-arrow { font-size: 12px; color: var(--text-tertiary); transition: transform 0.2s; }
+.template-toggle-arrow.open { transform: rotate(90deg); }
+
+/* セクション区切り */
+.section-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 24px 0 8px; padding: 0 4px;
+}
+.section-divider-line {
+  flex: 1; height: 1px; background: var(--separator);
+}
+.section-divider-text {
+  font-size: 12px; color: var(--text-tertiary); font-weight: 500;
+  white-space: nowrap; letter-spacing: 0.05em;
+}
+
 /* テンプレート */
 .template-grid {
   display: grid; grid-template-columns: 1fr 1fr 1fr;
@@ -496,8 +610,51 @@ body {
     </div>
   </div>
 
-  <div class="list-header">テンプレートから始める</div>
-  <div class="template-grid" id="template-grid"></div>
+  <div class="list-header">写真から工程表を作る</div>
+  <div class="photo-upload-card" id="photo-upload-card">
+    <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById('photo-input').click()">
+      <div class="photo-upload-icon">📷</div>
+      <div class="photo-upload-text">写真を選択</div>
+      <div class="photo-upload-hint">撮影のコツ：反射を避けて・1ページ1枚・真上から</div>
+      <div class="photo-upload-examples">
+        <div class="photo-example">
+          <div class="photo-example-icon">📋</div>
+          <div class="photo-example-label">工程リスト</div>
+          <div class="photo-example-desc">1ページずつ<br>全体が写るように</div>
+        </div>
+        <div class="photo-example">
+          <div class="photo-example-icon">✏️</div>
+          <div class="photo-example-label">パーツ合流図</div>
+          <div class="photo-example-desc">手書きメモは<br>別で1枚撮る</div>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotoSelect(event)">
+    <div class="photo-preview-wrap" id="photo-preview-wrap" style="display:none">
+      <div class="photo-preview-grid" id="photo-preview-grid"></div>
+      <div class="photo-memo-wrap">
+        <textarea class="photo-memo" id="photo-memo" placeholder="補足メモ（任意）例：「左列の工程だけ使って」「写真3は2の反射補足」" rows="2"></textarea>
+      </div>
+      <div class="photo-preview-actions">
+        <button class="photo-action-btn photo-action-add" onclick="document.getElementById('photo-input').click()">＋ 追加</button>
+        <button class="photo-action-btn photo-action-remove" onclick="removeAllPhotos()">全削除</button>
+        <button class="photo-action-btn photo-action-generate" id="photo-generate-btn" onclick="generateFromPhoto()">AIで生成</button>
+      </div>
+    </div>
+    <div class="photo-status" id="photo-status" style="display:none"></div>
+  </div>
+
+  <div class="template-toggle" id="template-toggle" onclick="toggleTemplates()">
+    <span class="template-toggle-text">写真がない場合：テンプレートから始める</span>
+    <span class="template-toggle-arrow" id="template-arrow">▶</span>
+  </div>
+  <div class="template-grid" id="template-grid" style="display:none"></div>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <span class="section-divider-text">工程の内容</span>
+    <div class="section-divider-line"></div>
+  </div>
 
   <div class="total-bar">
     <span class="total-label">合計時間</span>
@@ -924,6 +1081,15 @@ function toggleView() {
   switchTab(currentTab === 'edit' ? 'preview' : 'edit');
 }
 
+// ===== テンプレート折りたたみ =====
+function toggleTemplates() {
+  const grid = document.getElementById('template-grid');
+  const arrow = document.getElementById('template-arrow');
+  const isHidden = grid.style.display === 'none';
+  grid.style.display = isHidden ? '' : 'none';
+  arrow.classList.toggle('open', isHidden);
+}
+
 // ===== テンプレート =====
 function renderTemplates() {
   const g = document.getElementById('template-grid');
@@ -984,7 +1150,10 @@ function importChartData(data) {
   if (parts.length > 0 || mainSteps.length > 0) {
     if (!confirm('現在のデータを置き換えますか？')) return;
   }
-  document.getElementById('product-name').value = data.name || '';
+  const nameInput = document.getElementById('product-name');
+  if (!nameInput.value.trim()) {
+    nameInput.value = data.name || '';
+  }
   parts = (data.parts || []).map(p => ({
     id: uid(),
     name: p.name,
@@ -994,11 +1163,11 @@ function importChartData(data) {
     branches: (p.branches || []).map(b => ({
       id: uid(),
       name: b.name,
-      steps: (b.steps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0 }))
+      steps: (b.steps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0, timeWarning: !!s.timeWarning }))
     })),
-    steps: (p.steps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0 }))
+    steps: (p.steps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0, timeWarning: !!s.timeWarning }))
   }));
-  mainSteps = (data.mainSteps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0 }));
+  mainSteps = (data.mainSteps || []).map(s => ({ name: s.name || s, seconds: s.seconds || 0, num: s.num || 0, timeWarning: !!s.timeWarning }));
   renderAll();
   saveCurrentChart();
 }
@@ -1208,17 +1377,20 @@ function updateTime(partId, branchId, stepIdx, minEl, secEl) {
   const sec = m * 60 + s;
   if (partId === 'main') {
     mainSteps[stepIdx].seconds = sec;
+    mainSteps[stepIdx].timeWarning = false;
   } else {
     const part = parts.find(p => p.id === partId);
     if (!part) return;
     if (branchId === 'trunk') {
       part.steps[stepIdx].seconds = sec;
+      part.steps[stepIdx].timeWarning = false;
     } else {
       const branch = part.branches.find(b => b.id === branchId);
-      if (branch) branch.steps[stepIdx].seconds = sec;
+      if (branch) { branch.steps[stepIdx].seconds = sec; branch.steps[stepIdx].timeWarning = false; }
     }
   }
   updateTotal();
+  renderAll();
   saveData();
 }
 
@@ -1288,7 +1460,7 @@ function renderParts() {
       </div>`;
 
       branch.steps.forEach((step, si) => {
-        html += `<div class="step-item in-branch" ">
+        html += `<div class="step-item in-branch${step.timeWarning ? ' unread-warning' : ''}" ">
           <span class="step-drag-handle" ontouchstart="initDrag(this.parentElement,'${part.id}','${branch.id}',${si},event)">☰</span>
           <span class="step-badge branch-badge">${si + 1}</span>
           <span class="step-name-label">${esc(step.name)}</span>
@@ -1324,7 +1496,7 @@ function renderParts() {
       }
 
       part.steps.forEach((step, si) => {
-        html += `<div class="step-item trunk-step" ">
+        html += `<div class="step-item trunk-step${step.timeWarning ? ' unread-warning' : ''}" ">
           <span class="step-drag-handle" ontouchstart="initDrag(this.parentElement,'${part.id}','trunk',${si},event)">☰</span>
           <span class="step-badge">${si + 1}</span>
           <span class="step-name-label">${esc(step.name)}</span>
@@ -1382,7 +1554,7 @@ function renderMainSteps() {
   c.innerHTML = '';
   mainSteps.forEach((step, si) => {
     const div = document.createElement('div');
-    div.className = 'step-item';
+    div.className = 'step-item' + (step.timeWarning ? ' unread-warning' : '');
     div.innerHTML = `
       <span class="step-drag-handle" ontouchstart="initDrag(this.parentElement,'main','',${si},event)">☰</span>
       <span class="step-badge main">${si + 1}</span>
@@ -1741,8 +1913,10 @@ function buildSVG(data, mono) {
     }
     s += svgNode(mainCx, sy, step.num, mono ? '#1c1c1e' : '#34c759', step.name, mono);
     s += `<text x="${mainCx+24}" y="${sy+5}" font-size="16" font-weight="500" font-family="${FONT}" fill="#1c1c1e">${esc(step.name)}</text>`;
-    if (step.seconds > 0) {
-      s += `<text x="${mainCx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+    if (step.seconds > 0 || step.timeWarning) {
+      const _tc = step.timeWarning ? '#ff9500' : '#1c1c1e';
+      const _tt = step.seconds > 0 ? fmtMS(step.seconds) : '??';
+      s += `<text x="${mainCx+16}" y="${sy+22}" font-size="15" fill="${_tc}" font-weight="${step.timeWarning ? '700' : '400'}" font-family="${FONT}">(${_tt})</text>`;
     }
   });
 
@@ -1807,8 +1981,10 @@ function buildSVG(data, mono) {
             }
             s += svgNode(bx, sy, step.num, branchColor, step.name, mono);
             s += svgStepText(bx+24, sy+5, step.name, 10);
-            if (step.seconds > 0) {
-              s += `<text x="${bx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+            if (step.seconds > 0 || step.timeWarning) {
+              const _tc = step.timeWarning ? '#ff9500' : '#1c1c1e';
+              const _tt = step.seconds > 0 ? fmtMS(step.seconds) : '??';
+              s += `<text x="${bx+16}" y="${sy+22}" font-size="15" fill="${_tc}" font-weight="${step.timeWarning ? '700' : '400'}" font-family="${FONT}">(${_tt})</text>`;
             }
           });
 
@@ -1831,8 +2007,10 @@ function buildSVG(data, mono) {
           }
           s += svgNode(pcx, sy, step.num, trunkColor, step.name, mono);
           s += svgStepText(pcx+24, sy+5, step.name, 12);
-          if (step.seconds > 0) {
-            s += `<text x="${pcx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+          if (step.seconds > 0 || step.timeWarning) {
+            const _tc = step.timeWarning ? '#ff9500' : '#1c1c1e';
+            const _tt = step.seconds > 0 ? fmtMS(step.seconds) : '??';
+            s += `<text x="${pcx+16}" y="${sy+22}" font-size="15" fill="${_tc}" font-weight="${step.timeWarning ? '700' : '400'}" font-family="${FONT}">(${_tt})</text>`;
           }
         });
 
@@ -1864,8 +2042,10 @@ function buildSVG(data, mono) {
           }
           s += svgNode(pcx, sy, step.num, '#1c1c1e', step.name, mono);
           s += svgStepText(pcx+24, sy+5, step.name, 12);
-          if (step.seconds > 0) {
-            s += `<text x="${pcx+16}" y="${sy+22}" font-size="15" fill="#1c1c1e" font-family="${FONT}">(${fmtMS(step.seconds)})</text>`;
+          if (step.seconds > 0 || step.timeWarning) {
+            const _tc = step.timeWarning ? '#ff9500' : '#1c1c1e';
+            const _tt = step.seconds > 0 ? fmtMS(step.seconds) : '??';
+            s += `<text x="${pcx+16}" y="${sy+22}" font-size="15" fill="${_tc}" font-weight="${step.timeWarning ? '700' : '400'}" font-family="${FONT}">(${_tt})</text>`;
           }
         });
 
@@ -2438,6 +2618,174 @@ document.getElementById('sheet-search').addEventListener('focus', function() {
   }, 50);
 });
 
+// ===== 写真→AI生成 =====
+let photoList = []; // [{base64, name}]
+
+function handlePhotoSelect(e) {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      photoList.push({ base64: ev.target.result, name: file.name });
+      loaded++;
+      if (loaded === files.length) renderPhotoGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photo-preview-grid');
+  grid.innerHTML = photoList.map((p, i) =>
+    `<div class="photo-thumb-wrap">
+      <img src="${p.base64}" class="photo-thumb">
+      <button class="photo-thumb-remove" onclick="removePhoto(${i})">✕</button>
+      <span class="photo-thumb-num">${i + 1}</span>
+    </div>`
+  ).join('');
+  document.getElementById('photo-upload-area').style.display = photoList.length ? 'none' : '';
+  document.getElementById('photo-preview-wrap').style.display = photoList.length ? 'block' : 'none';
+  setPhotoStatus('', '');
+}
+
+function removePhoto(idx) {
+  photoList.splice(idx, 1);
+  renderPhotoGrid();
+}
+
+function removeAllPhotos() {
+  photoList = [];
+  renderPhotoGrid();
+  const memo = document.getElementById('photo-memo');
+  if (memo) memo.value = '';
+}
+
+function setPhotoStatus(msg, type) {
+  const el = document.getElementById('photo-status');
+  if (!msg) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.className = 'photo-status' + (type ? ' ' + type : '');
+  el.innerHTML = msg;
+}
+
+// サーバーURL（同じオリジン）
+const API_BASE = location.origin;
+let pollTimer = null;
+
+async function generateFromPhoto() {
+  if (!photoList.length) return;
+
+  // サーバーが生きてるか確認
+  try {
+    const check = await fetch(API_BASE + '/api/status');
+    if (!check.ok) throw new Error();
+  } catch {
+    setPhotoStatus('iが起動していません。セッションを開いてから試してください。', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('photo-generate-btn');
+  btn.disabled = true;
+  setPhotoStatus('<span class="photo-spinner"></span>写真を送信しています…', 'loading');
+
+  try {
+    const images = photoList.map(p => p.base64);
+    const memo = (document.getElementById('photo-memo').value || '').trim();
+    const resp = await fetch(API_BASE + '/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images, memo })
+    });
+    if (!resp.ok) throw new Error('送信エラー: ' + resp.status);
+    const { id } = await resp.json();
+    localStorage.setItem('lastPhotoReqId', id);
+    setPhotoStatus(`<span class="photo-spinner"></span>${images.length}枚の写真を送信しました。<br>工程表の生成には数分かかります。<br>このまま待つか、あとで画面を開き直してください。`, 'loading');
+    pollForResult(id);
+  } catch (e) {
+    console.error('Upload error:', e);
+    setPhotoStatus('送信に失敗しました: ' + e.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+function pollForResult(id) {
+  if (pollTimer) clearInterval(pollTimer);
+  let elapsed = 0;
+  pollTimer = setInterval(async () => {
+    elapsed += 3;
+    if (elapsed > 600) {
+      clearInterval(pollTimer);
+      setPhotoStatus('タイムアウトしました。もう一度試してください。', 'error');
+      document.getElementById('photo-generate-btn').disabled = false;
+      return;
+    }
+    try {
+      // 進捗を取得して表示
+      try {
+        const progResp = await fetch(API_BASE + '/api/progress/' + id);
+        const prog = await progResp.json();
+        if (prog.message) {
+          setPhotoStatus('<span class="photo-spinner"></span>' + prog.message, 'loading');
+        }
+      } catch(e) {}
+      const resp = await fetch(API_BASE + '/api/result/' + id);
+      const result = await resp.json();
+      if (result.status === 'done') {
+        clearInterval(pollTimer);
+        // 既存データがあれば新規工程表を作ってからインポート
+        if (parts.length > 0 || mainSteps.length > 0) {
+          createNewChart();
+        }
+        // 同名チャートがあれば日時を付けて区別
+        const baseName = result.data.name || '工程表';
+        const existingNames = charts.map(c => c.name);
+        if (existingNames.includes(baseName)) {
+          const now = new Date();
+          const ts = (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+          result.data.name = baseName + '（' + ts + '）';
+        }
+        importChartData(result.data);
+        // 警告表示
+        const zeroCount = countZeroSeconds(result.data);
+        const warnings = result.data.warnings || [];
+        let statusMsg = '工程表を生成しました！';
+        if (zeroCount > 0 || warnings.length > 0) {
+          statusMsg += '<br>';
+          if (zeroCount > 0) {
+            statusMsg += `<span class="unread-banner">${zeroCount}件の工程で時間を読み取れませんでした（オレンジ色でハイライト中）</span>`;
+          }
+          if (warnings.length > 0) {
+            statusMsg += '<div class="warning-list">' + warnings.map(w => '<div class="warning-item">' + w + '</div>').join('') + '</div>';
+          }
+        } else {
+          statusMsg += '内容を確認・修正してください。';
+        }
+        setPhotoStatus(statusMsg, '');
+        removeAllPhotos();
+        localStorage.removeItem('lastPhotoReqId');
+        document.getElementById('photo-generate-btn').disabled = false;
+      }
+    } catch (e) {
+      // ネットワークエラーは無視して再試行
+    }
+  }, 3000);
+}
+
+function countZeroSeconds(data) {
+  let count = 0;
+  if (data.parts) data.parts.forEach(p => {
+    if (p.steps) p.steps.forEach(s => { if (s.timeWarning) count++; });
+    if (p.branches) p.branches.forEach(b => {
+      if (b.steps) b.steps.forEach(s => { if (s.timeWarning) count++; });
+    });
+  });
+  if (data.mainSteps) data.mainSteps.forEach(s => { if (s.timeWarning) count++; });
+  return count;
+}
+
 // ===== 初期化 =====
 renderTemplates();
 try {
@@ -2448,6 +2796,45 @@ try {
 }
 // 確実にチップを表示
 renderChartList();
+
+// ページ読み込み時に未完了のリクエストがあればポーリング再開
+(function checkPendingRequest() {
+  const lastReqId = localStorage.getItem('lastPhotoReqId');
+  if (!lastReqId) return;
+  fetch(API_BASE + '/api/result/' + lastReqId)
+    .then(r => r.json())
+    .then(result => {
+      if (result.status === 'done') {
+        if (parts.length > 0 || mainSteps.length > 0) createNewChart();
+        const baseName = result.data.name || '工程表';
+        const existingNames = charts.map(c => c.name);
+        if (existingNames.includes(baseName)) {
+          const now = new Date();
+          const ts = (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+          result.data.name = baseName + '（' + ts + '）';
+        }
+        importChartData(result.data);
+        const zc = countZeroSeconds(result.data);
+        const wn = result.data.warnings || [];
+        let sm = '工程表を生成しました！';
+        if (zc > 0 || wn.length > 0) {
+          sm += '<br>';
+          if (zc > 0) sm += `<span class="unread-banner">${zc}件の工程で時間を読み取れませんでした（オレンジ色でハイライト中）</span>`;
+          if (wn.length > 0) sm += '<div class="warning-list">' + wn.map(w => '<div class="warning-item">' + w + '</div>').join('') + '</div>';
+        } else {
+          sm += '内容を確認・修正してください。';
+        }
+        setPhotoStatus(sm, '');
+        localStorage.removeItem('lastPhotoReqId');
+      } else if (result.status === 'processing') {
+        setPhotoStatus('<span class="photo-spinner"></span>まだ処理中です。このまま待つか、あとで開き直してください。', 'loading');
+        pollForResult(lastReqId);
+      } else {
+        localStorage.removeItem('lastPhotoReqId');
+      }
+    })
+    .catch(() => {});
+})();
 </script>
 </body>
 </html>
